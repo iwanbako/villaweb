@@ -1,0 +1,206 @@
+---
+import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+  nofollow?: boolean;
+  schemaCustom?: object | object[];
+  ogImage?: string;
+  ogType?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  author?: string;
+  keywords?: string;
+  articleSection?: string;
+  disableIndex?: boolean;
+}
+
+const {
+  title = "villa.web.id",
+  description = "Cari dan pesan villa terbaik di Puncak dengan harga jujur, private pool, view gunung, dan konfirmasi instan. 500+ pilihan villa terverifikasi.",
+  noindex = false,
+  nofollow = false,
+  ogImage = "/og-image.jpg",
+  ogType = "website",
+  publishedTime,
+  modifiedTime,
+  author = "villa.web.id",
+  keywords = "sewa villa puncak, villa murah puncak, private pool puncak, view gunung, villa rombongan",
+  articleSection = "Wisata Puncak",
+  disableIndex = false,
+} = Astro.props;
+
+/**
+ * LOGIKA CLEAN URL - Diperbaiki agar tidak merusak Canonical URL
+ */
+const siteUrl = Astro.site || 'https://villa.web.id';
+const pathname = Astro.url.pathname;
+const cleanPathname = pathname.replace(/\.html$/, '').replace(/\/$/, '') || '/';
+
+const canonicalURL = new URL(cleanPathname, siteUrl);
+const socialImageURL = new URL(ogImage, siteUrl);
+
+/**
+ * PERBAIKAN UNTUK SEO: Generate Robots Meta
+ */
+const robotsDirectives = [];
+if (noindex || disableIndex) robotsDirectives.push('noindex');
+if (nofollow) robotsDirectives.push('nofollow');
+if (!noindex && !disableIndex) robotsDirectives.push('index', 'follow');
+const robotsMeta = robotsDirectives.join(', ');
+---
+
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+  <head>
+    <!-- ===== META DASAR ===== -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+
+    <!-- ===== PREKONEKSI UNTUK PERFORMA ===== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+
+    <!-- ===== FAVICON ===== -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- ===== CANONICAL URL ===== -->
+    <link rel="canonical" href={canonicalURL.href} />
+
+    <!-- ===== TITLE & META ===== -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+
+    <!-- ===== KEYWORDS ===== -->
+    <meta name="keywords" content={keywords} />
+
+    <!-- ===== ROBOTS META ===== -->
+    <meta name="robots" content={robotsMeta} />
+    <meta name="googlebot" content={robotsMeta} />
+
+    <!-- ===== OPEN GRAPH ===== -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalURL.href} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={socialImageURL.href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="Sewa Villa Puncak" />
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
+    {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
+    {ogType === "article" && <meta property="article:author" content={author} />}
+    {ogType === "article" && <meta property="article:section" content={articleSection} />}
+
+    <!-- ===== TWITTER CARD ===== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImageURL.href} />
+    <meta name="twitter:site" content="@akangvillapuncak" />
+    <meta name="twitter:creator" content="@akangvillapuncak" />
+
+    <!-- ===== FONTS ===== -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    </noscript>
+
+    <!-- ===== ANALYTICS / PIXEL ===== -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+
+    <!-- ===== VERIFICATION ===== -->
+    <meta name="google-site-verification" content="XXXXXXXXXXX" />
+    <meta name="yandex-verification" content="XXXXXXXXXXX" />
+  </head>
+  <body class="bg-white text-slate-900 antialiased selection:bg-[#ebf3ff] selection:text-[#006ce4]">
+    <div class="page-transition min-h-screen flex flex-col">
+      <main class="flex-1">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  @reference "tailwindcss";
+
+  /* ===== FONT STACK ===== */
+  :root {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+
+  /* ===== ANIMASI PAGE TRANSITION ===== */
+  .page-transition {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ===== SCROLLBAR ===== */
+  @media (min-width: 768px) {
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb {
+      background: #006ce4;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #003580;
+    }
+  }
+
+  /* ===== OPTIMASI RENDER ===== */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  /* ===== FOCUS VISIBLE ===== */
+  *:focus-visible {
+    outline: 2px solid #006ce4;
+    outline-offset: 2px;
+  }
+
+  /* ===== IMAGE OPTIMIZATION ===== */
+  img {
+    height: auto;
+    max-width: 100%;
+  }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    .no-print { display: none; }
+    body { font-size: 12pt; }
+    a { text-decoration: underline; }
+  }
+</style>

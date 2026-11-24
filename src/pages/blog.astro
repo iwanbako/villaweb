@@ -1,0 +1,952 @@
+---
+export const prerender = true;
+
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#0770cd"/><path d="M14 33 L32 16 L50 33" fill="none" stroke="#ff5e1f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 31 V44 H43 V31" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 51 Q24 47 32 51 T48 51" fill="none" stroke="#7dd3fc" stroke-width="3.8" stroke-linecap="round"/></svg>`;
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+
+// Data artikel lengkap (40 Keyword) dengan URL gambar yang sudah diperbaiki & divalidasi
+const articles = [
+  {
+    title: "Villa Puncak Dekat Taman Bunga Nusantara Sewa 1 Rumah",
+    desc: "Temukan kenyamanan menginap di villa strategis yang hanya berjarak beberapa menit dari keindahan Taman Bunga Nusantara.",
+    img: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914"
+  },
+  {
+    title: "Pilihan Villa Dekat Kebun Raya Cibodas View Gunung",
+    desc: "Nikmati udara segar dan pemandangan pegunungan langsung dari jendela villa pilihan kami di sekitar Kebun Raya Cibodas.",
+    img: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e"
+  },
+  {
+    title: "Sewa Villa di Kota Bunga Dekat Little Venice Puncak",
+    desc: "Rasakan sensasi liburan bergaya Eropa di komplek Kota Bunga dengan akses mudah ke wahana air Little Venice.",
+    img: "https://images.unsplash.com/photo-1505844839756-181a77353113"
+  },
+  {
+    title: "Villa Murah Dekat Arena Fantasi Kota Bunga untuk Anak",
+    desc: "Pilihan akomodasi hemat biaya yang sangat dekat dengan pusat hiburan keluarga dan wahana permainan anak.",
+    img: "https://images.unsplash.com/photo-1602075432748-82d264e2b463"
+  },
+  {
+    title: "Villa di Puncak Resort Dekat Wisata Kebun Petik Stroberi",
+    desc: "Menginap di Puncak Resort memberikan Anda kemudahan untuk menikmati pengalaman memetik buah stroberi segar.",
+    img: "https://images.unsplash.com/photo-1592388751543-ec067035973d"
+  },
+  {
+    title: "Villa Keluarga Dekat Taman Kelinci dan Taman Domba Puncak Resort",
+    desc: "Ajak buah hati berinteraksi dengan hewan di Taman Kelinci sambil menikmati fasilitas villa keluarga yang lengkap.",
+    img: "https://images.unsplash.com/photo-1516466723877-e4ec1d736c8a"
+  },
+  {
+    title: "Villa Puncak Pass Dekat Lokasi Gantole dan Paralayang",
+    desc: "Bagi pecinta olahraga ekstrem, villa di area Puncak Pass adalah pilihan tepat untuk dekat dengan lokasi takeoff.",
+    img: "https://images.unsplash.com/photo-1521401830884-6c03c1c87ebb"
+  },
+  {
+    title: "Staycation Dekat Telaga Warna Puncak Pass Paling Sejuk",
+    desc: "Nikmati ketenangan alam dan dinginnya udara Puncak di villa eksklusif sekitar kawasan konservasi Telaga Warna.",
+    img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b"
+  },
+  {
+    title: "Villa Puncak Dekat Sate Maranggi Sari Asih Cipanas",
+    desc: "Pilihan villa terbaik bagi para pecinta kuliner yang ingin berdekatan dengan pusat sate maranggi paling populer.",
+    img: "https://images.unsplash.com/photo-1544025162-d76694265947"
+  },
+  {
+    title: "Villa di Cipanas Dekat Restoran Bumi Aki dan Bumi Nini",
+    desc: "Menginap nyaman di Cipanas dengan akses cepat menuju restoran masakan Sunda yang ikonik dan melegenda.",
+    img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750"
+  },
+  {
+    title: "Sewa Villa Dekat Sate Shinta Cipanas Akses Mudah",
+    desc: "Akses jalan raya utama yang memudahkan mobilitas Anda saat berwisata kuliner di area Cipanas dan sekitarnya.",
+    img: "https://images.unsplash.com/photo-1613490493576-7fde63acd811"
+  },
+  {
+    title: "Villa Murah Dekat Alam Sunda Cipanas untuk Rombongan",
+    desc: "Cari villa kapasitas besar dengan harga terjangkau? Cek koleksi kami yang dekat dengan pusat kuliner Alam Sunda.",
+    img: "https://images.unsplash.com/photo-1518780664697-55e3ad937233"
+  },
+  {
+    title: "Booking Villa Dekat Nicole's Kitchen dan Lounge Puncak",
+    desc: "Staycation modern di villa yang dekat dengan tempat nongkrong hits dan instagramable di area Puncak.",
+    img: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa"
+  },
+  {
+    title: "Villa Puncak Dekat Amen Chinese Restaurant dan Simpang Raya",
+    desc: "Kemudahan mencari hidangan favorit di restoran populer dengan memilih villa yang berada di lokasi strategis.",
+    img: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd"
+  },
+  {
+    title: "Rekomendasi Villa Cipanas Dekat Pasar Grosir dan Kuliner",
+    desc: "Temukan unit villa terbaik bagi Anda yang ingin berbelanja oleh-oleh dan menikmati jajanan khas Cipanas.",
+    img: "https://images.unsplash.com/photo-1566073771259-6a8506099945"
+  },
+  {
+    title: "Rekomendasi Villa Puncak untuk Keluarga Besar",
+    desc: "Unit villa luas dengan fasilitas kamar banyak, sangat ideal untuk acara kumpul keluarga besar atau arisan.",
+    img: "https://images.unsplash.com/photo-1540518614846-7eded433c457"
+  },
+  {
+    title: "Daftar Villa Puncak yang Cocok untuk Liburan Akhir Pekan Weekend",
+    desc: "Kumpulan villa yang siap dipesan untuk short-escape Anda melepas penat dari hiruk pikuk kota Jakarta.",
+    img: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2"
+  },
+  {
+    title: "Villa Puncak untuk Staycation Keluarga dengan Fasilitas Terlengkap",
+    desc: "Dari kolam renang hingga area BBQ, villa-villa ini menawarkan fasilitas lengkap untuk memanjakan keluarga Anda.",
+    img: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7"
+  },
+  {
+    title: "Top Villa Puncak untuk Liburan Sekolah Sewa 1 Rumah Full Plot",
+    desc: "Berikan pengalaman libur sekolah yang berkesan dengan menyewa satu rumah villa utuh dengan privasi terjaga.",
+    img: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4"
+  },
+  {
+    title: "Sewa Villa Harian di Puncak Terlengkap",
+    desc: "Siapa bilang menginap di Puncak harus mahal? Cek daftar villa nyaman dengan harga yang sangat bersahabat.",
+    img: "https://images.unsplash.com/photo-1449154114147-3d6006c99c3a"
+  },
+  {
+    title: "Pilihan Villa Puncak untuk Menginap Semalam Proses Booking Cepat",
+    desc: "Butuh villa mendadak? Sistem booking kami yang efisien memastikan Anda mendapatkan unit terbaik dengan cepat.",
+    img: "https://images.unsplash.com/photo-1510798831971-661eb04b3739"
+  },
+  {
+    title: "Villa Puncak Paling Dicari untuk Libur Lebaran dan Tahun Baru",
+    desc: "Daftar unit favorit yang selalu full booked di hari raya. Pesan jauh-jauh hari untuk mengamankan slot Anda.",
+    img: "https://images.unsplash.com/photo-1484154218962-a197022b5858"
+  },
+  {
+    title: "Update 2026 Villa Puncak yang Pas untuk Short-Escape dari Jakarta",
+    desc: "Info terbaru mengenai villa-villa yang paling direkomendasikan untuk pelarian singkat di akhir pekan.",
+    img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688"
+  },
+  {
+    title: "Villa Puncak Sewa 1 Rumah Full Privasi Total Tanpa Gangguan",
+    desc: "Nikmati waktu berkualitas tanpa gangguan orang asing dengan menyewa villa privat satu rumah penuh.",
+    img: "https://images.unsplash.com/photo-1464146072230-91cabc968266"
+  },
+  {
+    title: "Villa Puncak Kapasitas 20 Orang Sewa Seluruh Bangunan",
+    desc: "Cari tempat gathering kecil? Villa dengan kapasitas 20 orang ini sangat pas untuk rombongan Anda.",
+    img: "https://images.unsplash.com/photo-1571896349842-33c89424de2d"
+  },
+  {
+    title: "Pilihan Sewa Villa Mewah di Puncak",
+    desc: "Fasilitas kolam renang pribadi menjadi daya tarik utama villa mewah ini untuk liburan yang lebih eksklusif.",
+    img: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd"
+  },
+  {
+    title: "Daftar Villa Murah di Puncak Satu Rumah untuk Rombongan",
+    desc: "Akomodasi rombongan tidak perlu mahal. Berikut daftar villa luas yang tetap ramah di kantong.",
+    img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6"
+  },
+  {
+    title: "Villa Puncak Konsep Rumah Kayu Menginap Serasa di Alam",
+    desc: "Rasakan suasana hangat dan estetis dengan menginap di villa kayu yang menyatu dengan alam Puncak.",
+    img: "https://images.unsplash.com/photo-1445013518233-4bb1523a2ee5"
+  },
+  {
+    title: "Villa Puncak Pilihan Keluarga Rumah Full dengan Dapur Sendiri",
+    desc: "Masak bersama keluarga jadi lebih seru dengan fasilitas dapur lengkap layaknya di rumah sendiri.",
+    img: "https://images.unsplash.com/photo-1556911223-e27025130612"
+  },
+  {
+    title: "Villa Puncak dengan Area Outdoor Luas untuk Acara Keluarga",
+    desc: "Butuh lahan untuk games atau api unggun? Villa-villa ini memiliki halaman yang sangat luas.",
+    img: "https://images.unsplash.com/photo-1533144415737-18b5e723507f"
+  },
+  {
+    title: "Villa di Area Coolibah Rekomendasi Staycation Keluarga Tenang",
+    desc: "Area Coolibah dikenal dengan ketenangannya, sangat cocok bagi Anda yang ingin healing dari keramaian.",
+    img: "https://images.unsplash.com/photo-1432303491106-96b61072911b"
+  },
+  {
+    title: "Villa Puncak Private Pool Pilihan Staycation Paling Eksklusif",
+    desc: "Privasi adalah segalanya. Nikmati kolam renang tanpa harus berbagi dengan tamu lainnya.",
+    img: "https://images.unsplash.com/photo-1540541338287-41700207dee6"
+  },
+  {
+    title: "Villa Puncak dengan Fasilitas Karaoke dan Billiard Seru-seruan Bareng",
+    desc: "Hiburan lengkap dalam satu rumah. Cocok untuk Anda yang ingin seru-seruan tanpa harus keluar villa.",
+    img: "https://images.unsplash.com/photo-1513694203232-719a280e022f"
+  },
+  {
+    title: "Villa Puncak View Gunung Bangun Tidur Langsung Lihat Pemandangan",
+    desc: "Pemandangan gunung yang megah menyambut pagi Anda setiap hari di villa-villa pilihan ini.",
+    img: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a"
+  },
+  {
+    title: "Villa Puncak Fasilitas Water Heater Menginap Nyaman Saat Dingin",
+    desc: "Kenyamanan ekstra di tengah udara dingin Puncak dengan ketersediaan pemanas air di setiap kamar mandi.",
+    img: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a"
+  },
+  {
+    title: "Villa Puncak untuk Family Gathering dan Acara Kantor",
+    desc: "Unit villa berskala besar yang mampu menampung rombongan kantor hingga 40 peserta dengan nyaman.",
+    img: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd"
+  },
+  {
+    title: "Villa Puncak Paling Instagramable Staycation Sambil Foto-foto",
+    desc: "Abadikan momen liburan Anda di villa-villa dengan desain interior dan eksterior yang sangat estetik.",
+    img: "https://images.unsplash.com/photo-1493809842364-78817add7ffb"
+  },
+  {
+    title: "Villa Puncak yang Ramah Anak Kid-Friendly Ada Playground",
+    desc: "Liburan tenang bagi orang tua karena tersedia fasilitas taman bermain yang aman dan menyenangkan bagi si kecil.",
+    img: "https://images.unsplash.com/photo-1472162014730-6b4ee5f28fa3"
+  },
+  {
+    title: "Villa Puncak untuk Acara Arisan atau Reuni Sekolah",
+    desc: "Lokasi strategis dan ruang kumpul yang luas menjadikannya tempat favorit untuk reuni dan arisan.",
+    img: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622"
+  },
+  {
+    title: "Villa Puncak Modern Minimalis Sewa Per Malam Gaya Kekinian",
+    desc: "Tampil kekinian dengan gaya arsitektur modern minimalis yang bersih, terang, dan sangat nyaman dihuni.",
+    img: "https://images.unsplash.com/photo-1480074568708-e7b720bb3f09"
+  }
+];
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blog &amp; Panduan Wisata Puncak 2026 | villa.web.id</title>
+    <meta
+      name="description"
+      content="Kumpulan panduan sewa villa, wisata, dan kuliner di Puncak, Cipanas, Cisarua, dan Kota Bunga dari villa.web.id."
+    />
+    <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+    <style>
+      :root {
+        --tvk-sky: #0194f3;
+        --tvk-blue: #0770cd;
+        --tvk-navy: #0c2c57;
+        --tvk-orange: #ff5e1f;
+        --tvk-orange-dark: #e64d12;
+        --bg: #f4f7fa;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Sticky Header Gaya Traveloka */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+        padding: 13px 20px;
+        transition: box-shadow 0.2s ease;
+      }
+
+      .topbar.is-stuck {
+        box-shadow: 0 6px 20px rgba(7, 112, 205, 0.12);
+      }
+
+      .topbar-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.28rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--tvk-sky);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        display: block;
+        flex-shrink: 0;
+        filter: drop-shadow(0 3px 8px rgba(7, 112, 205, 0.2));
+      }
+
+      .brand-text span {
+        color: var(--tvk-navy);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-nav a {
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.84rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a.is-active {
+        color: var(--tvk-sky);
+      }
+
+      .topbar-badge {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .menu-toggle-btn {
+        display: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--tvk-navy);
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .menu-toggle-btn:hover {
+        background: #e6f4ff;
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+
+      .hero-tvk {
+        background: linear-gradient(135deg, #0770cd 0%, #0194f3 60%, #0c2c57 100%);
+        color: #ffffff;
+        padding: 40px 20px 64px;
+      }
+
+      .hero-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: #e0f2fe;
+        margin-bottom: 12px;
+      }
+
+      .breadcrumb a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .breadcrumb a:hover {
+        text-decoration: underline;
+      }
+
+      .hero-title {
+        margin: 0 0 8px;
+        font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      .hero-desc {
+        margin: 0;
+        color: #e0f2fe;
+        font-size: 0.94rem;
+        line-height: 1.5;
+      }
+
+      .main-tvk {
+        flex: 1 0 auto;
+        width: 100%;
+        max-width: 1180px;
+        margin: -30px auto 0;
+        padding: 0 20px 72px;
+      }
+
+      .article-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+      }
+
+      .article-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 18px rgba(12, 44, 87, 0.05);
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease;
+        display: flex;
+      }
+
+      .article-card.hidden-card {
+        display: none;
+      }
+
+      .article-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--tvk-sky);
+        box-shadow: 0 12px 24px rgba(1, 148, 243, 0.12);
+      }
+
+      .article-card a {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .card-image-box {
+        position: relative;
+        height: 205px;
+        background: #e2e8f0;
+        overflow: hidden;
+      }
+
+      .card-image-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.25s ease;
+      }
+
+      .article-card:hover .card-image-box img {
+        transform: scale(1.03);
+      }
+
+      .update-tag {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: #00875a;
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 4px 9px;
+        border-radius: 6px;
+        letter-spacing: 0.02em;
+      }
+
+      .card-content {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+
+      .card-content h2 {
+        margin: 0 0 8px;
+        font-size: 1.04rem;
+        font-weight: 800;
+        color: var(--tvk-navy);
+        line-height: 1.38;
+        letter-spacing: -0.02em;
+      }
+
+      .card-content p {
+        margin: 0 0 18px;
+        font-size: 0.86rem;
+        color: var(--muted);
+        line-height: 1.58;
+        flex-grow: 1;
+      }
+
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+
+      .btn-read {
+        color: var(--tvk-blue);
+        font-size: 0.86rem;
+        font-weight: 700;
+      }
+
+      .arrow-icon {
+        color: var(--tvk-blue);
+        font-weight: 800;
+      }
+
+      .load-more-section {
+        text-align: center;
+        margin-top: 40px;
+      }
+
+      .btn-booking-style {
+        background: var(--card);
+        border: 1px solid var(--tvk-sky);
+        color: var(--tvk-blue);
+        padding: 12px 32px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+      }
+
+      .btn-booking-style:hover {
+        background: #e6f4ff;
+      }
+
+      /* Footer Gaya Traveloka */
+      .site-footer {
+        background: var(--tvk-navy);
+        color: #e2e8f0;
+        border-top: 1px solid var(--border);
+        padding: 36px 20px 28px;
+        margin-top: auto;
+      }
+
+      .footer-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .footer-logo {
+        width: 28px;
+        height: 28px;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .footer-brand span {
+        color: #7dd3fc;
+      }
+
+      .footer-copy {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #cbd5e1;
+        max-width: 440px;
+        line-height: 1.55;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+      }
+
+      .footer-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .footer-links a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      .footer-bottom {
+        max-width: 1180px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 11px 16px;
+        }
+
+        .brand {
+          font-size: 1.15rem;
+          gap: 7px;
+        }
+
+        .brand-logo {
+          width: 30px;
+          height: 30px;
+        }
+
+        .topbar-badge {
+          display: none;
+        }
+
+        .menu-toggle-btn {
+          display: inline-flex;
+        }
+
+        .topbar-right {
+          position: static;
+          gap: 0;
+        }
+
+        .topbar-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+          box-shadow: 0 12px 24px rgba(12, 44, 87, 0.12);
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 6px 12px 10px;
+        }
+
+        .topbar-nav.is-open {
+          display: flex;
+        }
+
+        .topbar-nav a {
+          padding: 11px 12px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+        }
+
+        .topbar-nav a:hover {
+          background: #f0f9ff;
+        }
+
+        .main-tvk {
+          padding: 0 12px 56px;
+        }
+
+        .article-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .btn-booking-style {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="topbar" class="topbar">
+      <div class="topbar-inner">
+        <a href="/" class="brand" aria-label="villa.web.id Beranda">
+          <svg
+            class="brand-logo"
+            viewBox="0 0 64 64"
+            width="34"
+            height="34"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="vw-blog-index-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0194f3" />
+                <stop offset="100%" stop-color="#0c2c57" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#vw-blog-index-bg)" />
+            <path
+              d="M14 33 L32 16 L50 33"
+              fill="none"
+              stroke="#ff5e1f"
+              stroke-width="5.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 31 V44 H43 V31"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="4.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M16 51 Q24 47 32 51 T48 51"
+              fill="none"
+              stroke="#7dd3fc"
+              stroke-width="3.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="brand-text">villa<span>.web.id</span></span>
+        </a>
+        <div class="topbar-right">
+          <nav id="topbar-nav" class="topbar-nav" aria-label="Navigasi utama">
+            <a href="/">Semua Villa</a>
+            <a href="/cara-pesan">Cara Pesan</a>
+            <a href="/bantuan">Bantuan</a>
+            <a href="/kontak">Kontak</a>
+            <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+          </nav>
+          <span class="topbar-badge">Sewa Villa Puncak, Cipanas &amp; Kota Bunga</span>
+          <button
+            type="button"
+            id="menu-toggle-btn"
+            class="menu-toggle-btn"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="topbar-nav"
+          >
+            &#9776;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero-tvk">
+      <div class="hero-inner">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a>
+          <span>&rsaquo;</span>
+          <span>Blog</span>
+        </nav>
+        <h1 class="hero-title">Pusat Informasi Sewa Villa Puncak</h1>
+        <p class="hero-desc">
+          Menampilkan {articles.length} panduan pilihan untuk staycation terbaik Anda di Puncak, Cipanas, Cisarua, dan Kota Bunga.
+        </p>
+      </div>
+    </section>
+
+    <main class="main-tvk">
+      <div class="article-grid" id="article-grid">
+        {
+          articles.map((item, index) => {
+            const slug = item.title
+              .toLowerCase()
+              .replace(/[^a-z0-9\s]/g, "")
+              .replace(/\s+/g, "-");
+            const optimizedImg = `${item.img}?q=60&w=500&auto=format&fit=crop`;
+
+            return (
+              <article class={`article-card ${index >= 9 ? "hidden-card" : ""}`}>
+                <a href={`/blog/${slug}`}>
+                  <div class="card-image-box">
+                    <img
+                      src={optimizedImg}
+                      alt={item.title}
+                      loading="lazy"
+                      onerror="this.src='https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=60&w=500&auto=format&fit=crop';"
+                    />
+                    <span class="update-tag">Update 2026</span>
+                  </div>
+                  <div class="card-content">
+                    <h2>{item.title}</h2>
+                    <p>{item.desc}</p>
+                    <div class="card-footer">
+                      <span class="btn-read">Lihat Panduan</span>
+                      <span class="arrow-icon">&rarr;</span>
+                    </div>
+                  </div>
+                </a>
+              </article>
+            );
+          })
+        }
+      </div>
+
+      <div class="load-more-section">
+        <button id="loadMoreBtn" type="button" class="btn-booking-style">
+          Tampilkan Artikel Lainnya
+        </button>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <svg
+              class="footer-logo"
+              viewBox="0 0 64 64"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#0194f3" />
+              <path
+                d="M14 33 L32 16 L50 33"
+                fill="none"
+                stroke="#ff5e1f"
+                stroke-width="5.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 31 V44 H43 V31"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 51 Q24 47 32 51 T48 51"
+                fill="none"
+                stroke="#e0f2fe"
+                stroke-width="3.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>villa<span>.web.id</span></span>
+          </div>
+          <p class="footer-copy">
+            Layanan sewa villa di kawasan Puncak, Cipanas, Cisarua, dan Kota Bunga dengan proses booking jelas dan transparan.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Tautan informasi">
+          <a href="/cara-pesan">Cara Pesan</a>
+          <a href="/bantuan">Bantuan</a>
+          <a href="/kontak">Kontak</a>
+          <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>villa.web.id</span>
+        <span>Puncak &bull; Cipanas &bull; Cisarua &bull; Kota Bunga</span>
+      </div>
+    </footer>
+
+    <script is:inline>
+      const menuToggleBtn = document.getElementById("menu-toggle-btn");
+      const topbarNav = document.getElementById("topbar-nav");
+      const topbarEl = document.getElementById("topbar");
+
+      function setMobileMenuOpen(isOpen) {
+        if (!topbarNav || !menuToggleBtn) return;
+        topbarNav.classList.toggle("is-open", isOpen);
+        menuToggleBtn.setAttribute("aria-expanded", String(isOpen));
+        menuToggleBtn.innerHTML = isOpen ? "&times;" : "&#9776;";
+        menuToggleBtn.setAttribute(
+          "aria-label",
+          isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"
+        );
+      }
+
+      menuToggleBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = topbarNav?.classList.contains("is-open") || false;
+        setMobileMenuOpen(!isOpen);
+      });
+
+      topbarNav?.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => setMobileMenuOpen(false));
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!topbarNav?.classList.contains("is-open")) return;
+        const target = e.target;
+        if (target instanceof Node && !topbarNav.contains(target) && target !== menuToggleBtn) {
+          setMobileMenuOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") setMobileMenuOpen(false);
+      });
+
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 640) setMobileMenuOpen(false);
+      });
+
+      function handleStickyHeader() {
+        if (!topbarEl) return;
+        topbarEl.classList.toggle("is-stuck", window.scrollY > 4);
+      }
+
+      window.addEventListener("scroll", handleStickyHeader, { passive: true });
+      handleStickyHeader();
+
+      const loadMoreBtn = document.getElementById("loadMoreBtn");
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener("click", () => {
+          const hiddenCards = document.querySelectorAll(".hidden-card");
+          for (let i = 0; i < 9 && i < hiddenCards.length; i++) {
+            hiddenCards[i].classList.remove("hidden-card");
+          }
+
+          if (document.querySelectorAll(".hidden-card").length === 0) {
+            loadMoreBtn.style.display = "none";
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

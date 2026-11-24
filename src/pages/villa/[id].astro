@@ -1,0 +1,1871 @@
+---
+import type { ImageMetadata } from "astro";
+import datavilla from "../../data/datavilla.json";
+
+export const prerender = true;
+
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#0770cd"/><path d="M14 33 L32 16 L50 33" fill="none" stroke="#ff5e1f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 31 V44 H43 V31" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 51 Q24 47 32 51 T48 51" fill="none" stroke="#7dd3fc" stroke-width="3.8" stroke-linecap="round"/></svg>`;
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+
+interface Villa {
+  id: string;
+  name: string;
+  location: string;
+  price_per_night: number;
+  kapasitas_maks: number;
+  jumlah_kamar: number;
+  rating: number;
+  jumlah_ulasan: number;
+  deskripsi_singkat?: string;
+  deskripsi_panjang?: string;
+  halaman_luas?: boolean;
+  pet_friendly?: boolean;
+  view_gunung?: boolean;
+  desain_klasik?: boolean;
+  private_pool?: boolean;
+  karaoke?: boolean;
+  meja_biliar?: boolean;
+  mewah?: boolean;
+  fasilitas?: string[];
+  wisata_terdekat?: string[];
+  restoran_terdekat?: string[];
+  main_photo_url?: string;
+  gallery_urls?: string[];
+}
+
+function randomRatingCount(min = 6500, max = 15000): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export function getStaticPaths() {
+  const allVillas = (Array.isArray(datavilla) ? datavilla : []) as Villa[];
+
+  const slugify = (text: string) =>
+    (text || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const buildPrimarySlug = (v: Villa, index: number) => {
+    const idClean = (v.id || "").trim().toLowerCase();
+    const nameSlug = slugify(v.name || "");
+
+    if (idClean && nameSlug && slugify(idClean).includes(nameSlug)) {
+      return slugify(idClean);
+    }
+    if (idClean && nameSlug) {
+      return `${slugify(idClean)}-${nameSlug}`;
+    }
+    if (idClean) {
+      return slugify(idClean);
+    }
+    if (nameSlug) {
+      return nameSlug;
+    }
+    return `villa-${index + 1}`;
+  };
+
+  const usedSlugs = new Set<string>();
+  const entries = allVillas.map((villa, idx) => {
+    let baseSlug = buildPrimarySlug(villa, idx);
+    if (!baseSlug) baseSlug = `villa-${idx + 1}`;
+
+    let finalSlug = baseSlug;
+    let counter = 2;
+    while (usedSlugs.has(finalSlug)) {
+      finalSlug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    usedSlugs.add(finalSlug);
+
+    return { villa, slug: finalSlug };
+  });
+
+  const RELATED_COUNT = 6;
+  const totalEntries = entries.length;
+
+  const appearanceCount = new Map<string, number>();
+  for (const item of entries) {
+    appearanceCount.set(item.slug, 0);
+  }
+
+  function scoreSimilarity(source: Villa, candidate: Villa): number {
+    let score = 0;
+    const srcLoc = (source.location || "").trim().toLowerCase();
+    const candLoc = (candidate.location || "").trim().toLowerCase();
+    if (srcLoc && candLoc && srcLoc === candLoc) score += 20;
+    if (source.private_pool && candidate.private_pool) score += 6;
+    if (source.view_gunung && candidate.view_gunung) score += 5;
+    if (source.halaman_luas && candidate.halaman_luas) score += 4;
+    if (source.jumlah_kamar && candidate.jumlah_kamar === source.jumlah_kamar) score += 3;
+    return score;
+  }
+
+  return entries.map(({ villa, slug }, sourceIdx) => {
+    const candidates = entries.filter((item) => item.slug !== slug);
+
+    candidates.sort((a, b) => {
+      const countA = appearanceCount.get(a.slug) || 0;
+      const countB = appearanceCount.get(b.slug) || 0;
+      if (countA !== countB) return countA - countB;
+
+      const simDiff = scoreSimilarity(villa, b.villa) - scoreSimilarity(villa, a.villa);
+      if (simDiff !== 0) return simDiff;
+
+      const idxA = entries.findIndex((e) => e.slug === a.slug);
+      const idxB = entries.findIndex((e) => e.slug === b.slug);
+      const distA = (idxA - sourceIdx + totalEntries) % totalEntries;
+      const distB = (idxB - sourceIdx + totalEntries) % totalEntries;
+      return distA - distB;
+    });
+
+    const picked = candidates.slice(0, Math.min(RELATED_COUNT, candidates.length));
+    for (const p of picked) {
+      appearanceCount.set(p.slug, (appearanceCount.get(p.slug) || 0) + 1);
+    }
+
+    return {
+      params: { id: slug },
+      props: {
+        villa,
+        villaSlug: slug,
+        relatedVillas: picked.map((rv) => ({
+          slug: rv.slug,
+          name: rv.villa.name,
+          location: rv.villa.location,
+          price_per_night: rv.villa.price_per_night,
+          jumlah_kamar: rv.villa.jumlah_kamar,
+          kapasitas_maks: rv.villa.kapasitas_maks,
+          main_photo_url: rv.villa.main_photo_url,
+          gallery_urls: rv.villa.gallery_urls,
+        })),
+      },
+    };
+  });
+}
+
+interface RelatedVillaItem {
+  slug: string;
+  name: string;
+  location: string;
+  price_per_night: number;
+  jumlah_kamar: number;
+  kapasitas_maks: number;
+  main_photo_url?: string;
+  gallery_urls?: string[];
+}
+
+interface Props {
+  villa: Villa;
+  villaSlug: string;
+  relatedVillas: RelatedVillaItem[];
+}
+
+const { villa, villaSlug, relatedVillas } = Astro.props;
+const ratingCountRandom = randomRatingCount(6500, 15000);
+
+// --- LOGIKA MAPPING GAMBAR LOKAL ---
+const localImages = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/villas/**/*.{jpeg,jpg,png,webp}",
+  { eager: true }
+);
+
+function getLocalAsset(cloudinaryUrl?: string): ImageMetadata | null {
+  if (!cloudinaryUrl) return null;
+  try {
+    const parts = cloudinaryUrl.split(/\/v\d+\//);
+    if (parts.length < 2) return null;
+    const fileName = decodeURIComponent(parts[1]);
+    const webpPath = fileName.replace(/\.[^/.]+$/, "") + ".webp";
+    const localPath = `/src/assets/villas/${webpPath}`;
+    const asset = localImages[localPath];
+    return asset ? asset.default : null;
+  } catch {
+    return null;
+  }
+}
+
+const fallbackImage = "https://placehold.co/800x500/e2e8f0/334155?text=Akang+Villa+Puncak";
+
+function formatRupiah(angka: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(angka || 0);
+}
+
+function getRatingLabel(rating: number): string {
+  if (rating >= 4.8) return "Mengesankan";
+  if (rating >= 4.5) return "Sangat bagus";
+  if (rating >= 4.0) return "Bagus";
+  return "Nyaman";
+}
+
+function resolveSingleUrl(rawUrl?: string): string {
+  if (!rawUrl || !rawUrl.trim()) return fallbackImage;
+  const trimmed = rawUrl.trim();
+  const localAsset = getLocalAsset(trimmed);
+  if (localAsset) return localAsset.src;
+  if (trimmed.startsWith("public/")) {
+    return "/" + trimmed.slice("public/".length);
+  }
+  return trimmed;
+}
+
+function resolveAllGalleryUrls(v: { main_photo_url?: string; gallery_urls?: string[] }): string[] {
+  const combined = [v.main_photo_url, ...(v.gallery_urls || [])].filter(
+    (u): u is string => Boolean(u && u.trim())
+  );
+  const uniqueRaw = Array.from(new Set(combined));
+  const resolved = uniqueRaw.map((u) => resolveSingleUrl(u));
+  return resolved.length > 0 ? resolved : [fallbackImage];
+}
+
+function normalizeFacilities(rawFasilitas?: string[]): string[] {
+  if (!Array.isArray(rawFasilitas) || rawFasilitas.length === 0) return [];
+  const knownItems = [
+    "Private Pool",
+    "Kolam Renang Pribadi",
+    "WiFi Gratis",
+    "Free WiFi",
+    "Area Parkir",
+    "BBQ",
+    "Area BBQ",
+    "Area Taman/Halaman",
+    "Halaman Luas",
+    "AC",
+    "Water Heater (Pemanas Air)",
+    "Water Heater",
+    "Dapur Lengkap",
+    "Kulkas",
+    "Dispenser Air",
+    "Peralatan Masak",
+    "Peralatan Makan",
+    "TV Layar Datar",
+    "Karaoke",
+    "Meja Biliar",
+    "Biliar",
+    "Set Kursi & Meja Makan",
+    "Sofa Ruang Tamu",
+  ];
+
+  const items: string[] = [];
+  for (const entry of rawFasilitas) {
+    if (!entry) continue;
+    const text = entry.trim();
+    if (text.length > 48) {
+      let matchedAny = false;
+      for (const known of knownItems) {
+        if (text.toLowerCase().includes(known.toLowerCase()) && !items.includes(known)) {
+          items.push(known);
+          matchedAny = true;
+        }
+      }
+      if (!matchedAny) items.push(text);
+    } else if (!items.includes(text)) {
+      items.push(text);
+    }
+  }
+  return items;
+}
+
+const galleryPhotos = resolveAllGalleryUrls(villa);
+const mainPhoto = galleryPhotos[0] || fallbackImage;
+
+const facilities = normalizeFacilities(villa.fasilitas);
+const wisataList = Array.isArray(villa.wisata_terdekat) ? villa.wisata_terdekat : [];
+const restoList = Array.isArray(villa.restoran_terdekat) ? villa.restoran_terdekat : [];
+const descriptionText = villa.deskripsi_panjang || villa.deskripsi_singkat || "";
+const priceFormatted = formatRupiah(villa.price_per_night);
+
+const mapQuery = encodeURIComponent(`${villa.name} ${villa.location || "Puncak"}`);
+const mapEmbedUrl = `https://maps.google.com/maps?q=${mapQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
+const siteOrigin = "https://villa.web.id";
+const canonicalUrl = `${siteOrigin}/villa/${villaSlug}`;
+const pageTitle = `${villa.name} (${villa.location}) — villa.web.id`;
+const pageDescription =
+  villa.deskripsi_singkat ||
+  `Sewa ${villa.name} di ${villa.location}, ${villa.jumlah_kamar} kamar tidur, kapasitas maksimal ${villa.kapasitas_maks} tamu. Harga mulai ${priceFormatted}/malam.`;
+
+const schemaPhoto =
+  mainPhoto && !mainPhoto.startsWith("https://placehold.co")
+    ? new URL(mainPhoto, siteOrigin).toString()
+    : `${siteOrigin}/og-image.jpg`;
+
+const productSchema = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: `${villa.name} — ${villa.location}`,
+  image: schemaPhoto,
+  description:
+    villa.deskripsi_singkat ||
+    `Sewa ${villa.name} di ${villa.location}, kapasitas maksimal ${villa.kapasitas_maks} tamu, ${villa.jumlah_kamar} kamar tidur. Harga mulai ${priceFormatted}/malam di villa.web.id.`,
+  brand: {
+    "@type": "Brand",
+    name: "villa.web.id",
+  },
+  offers: {
+    "@type": "Offer",
+    url: canonicalUrl,
+    priceCurrency: "IDR",
+    price: villa.price_per_night || 0,
+    availability: "https://schema.org/InStock",
+    priceValidUntil: "2027-12-31",
+  },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: villa.rating || 4.9,
+    bestRating: 5,
+    worstRating: 1,
+    ratingCount: ratingCountRandom,
+  },
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Beranda",
+      item: `${siteOrigin}/`,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: villa.location || "Puncak",
+      item: `${siteOrigin}/`,
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: villa.name,
+      item: canonicalUrl,
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+    {
+      galleryPhotos.slice(1, 5).map((photoSrc) => (
+        <link rel="preload" as="image" href={photoSrc} />
+      ))
+    }
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="product" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="villa.web.id" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={schemaPhoto} />
+    <meta property="og:image:alt" content={villa.name} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+    <meta name="twitter:image" content={schemaPhoto} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    <style>
+      :root {
+        --sky: #0194f3;
+        --blue: #0770cd;
+        --navy: #0c2c57;
+        --orange: #ff5e1f;
+        --green: #16a34a;
+        --green-dark: #15803d;
+        --bg: #f1f5f9;
+        --surface: #ffffff;
+        --surface-soft: #f8fafc;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --shadow-sm: 0 4px 14px rgba(12, 44, 87, 0.05);
+        --shadow-md: 0 12px 28px rgba(12, 44, 87, 0.09);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+      }
+
+      img,
+      svg,
+      video,
+      iframe {
+        max-width: 100%;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+        padding: 13px 20px;
+        transition: box-shadow 0.2s ease;
+      }
+
+      .topbar.is-stuck {
+        box-shadow: 0 6px 20px rgba(7, 112, 205, 0.12);
+      }
+
+      .topbar-inner {
+        max-width: 1080px;
+        width: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.25rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--sky);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        display: block;
+        flex-shrink: 0;
+        filter: drop-shadow(0 3px 8px rgba(7, 112, 205, 0.2));
+      }
+
+      .brand-text span {
+        color: var(--navy);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-nav a {
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.84rem;
+        font-weight: 600;
+        line-height: 1.3;
+        transition: color 0.15s ease;
+        overflow-wrap: anywhere;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a.is-active {
+        color: var(--sky);
+      }
+
+      .topbar-badge {
+        background: #e6f4ff;
+        color: var(--blue);
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.3;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .menu-toggle-btn {
+        display: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--navy);
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .menu-toggle-btn:hover {
+        background: #e6f4ff;
+        border-color: var(--sky);
+        color: var(--blue);
+      }
+
+      .hero {
+        width: 100%;
+        background: linear-gradient(135deg, #0770cd 0%, #0194f3 58%, #0c2c57 100%);
+        color: #fff;
+        padding: 26px 20px 44px;
+      }
+
+      .hero-inner {
+        max-width: 1080px;
+        width: 100%;
+        margin: 0 auto;
+        min-width: 0;
+      }
+
+      .breadcrumb {
+        font-size: 0.8rem;
+        color: #bae6fd;
+        margin-bottom: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        overflow-wrap: anywhere;
+      }
+
+      .breadcrumb a {
+        color: #fff;
+        text-decoration: none;
+      }
+
+      .breadcrumb a:hover {
+        text-decoration: underline;
+      }
+
+      .hero-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .hero-top > div:first-child {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .hero h1 {
+        margin: 0 0 6px;
+        font-size: clamp(1.35rem, 3vw, 2.05rem);
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        overflow-wrap: anywhere;
+      }
+
+      .hero-loc {
+        margin: 0;
+        color: #e0f2fe;
+        font-size: 0.94rem;
+        font-weight: 500;
+        overflow-wrap: anywhere;
+      }
+
+      .hero-rating-chip {
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 10px;
+        padding: 8px 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        max-width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .hero-rating-score {
+        background: #fff;
+        color: var(--blue);
+        font-weight: 900;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.88rem;
+        flex-shrink: 0;
+      }
+
+      .container {
+        flex: 1 0 auto;
+        width: 100%;
+        max-width: 1080px;
+        margin: -24px auto 0;
+        padding: 0 20px 64px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        min-width: 0;
+      }
+
+      .section-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px 22px;
+        box-shadow: var(--shadow-sm);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: clip;
+      }
+
+      /* --- GALERI: 1 GAMBAR UTAMA DI ATAS + THUMBNAIL DI BAWAH --- */
+      .gallery-box {
+        padding: 12px;
+        box-shadow: var(--shadow-md);
+      }
+
+      .gallery-main-wrap {
+        position: relative;
+        width: 100%;
+        height: 440px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #e2e8f0;
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: grab;
+      }
+
+      .gallery-main-wrap.is-dragging {
+        cursor: grabbing;
+      }
+
+      .gallery-main-wrap img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 1;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .slider-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(12, 44, 87, 0.72);
+        color: #fff;
+        font-size: 1.45rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+
+      .slider-btn:hover {
+        background: var(--sky);
+        transform: translateY(-50%) scale(1.05);
+      }
+
+      .slider-btn.prev {
+        left: 12px;
+      }
+
+      .slider-btn.next {
+        right: 12px;
+      }
+
+      .photo-badge {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        z-index: 3;
+        background: rgba(15, 23, 42, 0.78);
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        pointer-events: none;
+      }
+
+      .thumb-strip {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 3px;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        touch-action: pan-x;
+      }
+
+      .thumb-item {
+        position: relative;
+        flex: 0 0 96px;
+        width: 96px;
+        height: 66px;
+        padding: 0;
+        border: 2px solid transparent;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #e2e8f0;
+        cursor: pointer;
+        opacity: 0.82;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .thumb-item:hover {
+        opacity: 1;
+      }
+
+      .thumb-item img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        pointer-events: none;
+        -webkit-user-drag: none;
+      }
+
+      .thumb-item.active {
+        border-color: var(--sky);
+        opacity: 1;
+      }
+
+      .summary-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .spec-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .spec-chip {
+        background: var(--surface-soft);
+        border: 1px solid var(--border);
+        color: var(--navy);
+        font-size: 0.84rem;
+        font-weight: 700;
+        padding: 7px 12px;
+        border-radius: 999px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .booking-panel {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .price-meta {
+        text-align: right;
+        min-width: 0;
+      }
+
+      .price-label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .price-amount {
+        font-size: 1.42rem;
+        font-weight: 900;
+        color: var(--orange);
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+      }
+
+      .btn-wa {
+        background: var(--green);
+        color: #fff;
+        text-decoration: none;
+        padding: 11px 20px;
+        border-radius: 10px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.15s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .btn-wa:hover {
+        background: var(--green-dark);
+      }
+
+      .section-heading {
+        margin: 0 0 12px;
+        font-size: 1.06rem;
+        font-weight: 800;
+        color: var(--navy);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow-wrap: anywhere;
+      }
+
+      .section-heading::before {
+        content: "";
+        width: 4px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--sky);
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      .desc-body {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: #334155;
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+      }
+
+      .facility-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-width: 100%;
+      }
+
+      .facility-badge {
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        color: #0369a1;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 8px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .map-locked-wrap {
+        position: relative;
+        width: 100%;
+        height: 300px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: #e2e8f0;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .map-locked-wrap iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+        pointer-events: none;
+      }
+
+      .map-click-shield {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        cursor: default;
+        background: transparent;
+      }
+
+      .map-caption {
+        margin-top: 8px;
+        font-size: 0.82rem;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+
+      .nearby-two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        width: 100%;
+      }
+
+      .nearby-card {
+        background: var(--surface-soft);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 18px;
+        min-width: 0;
+        overflow-x: clip;
+      }
+
+      .nearby-list {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 0.88rem;
+        color: #334155;
+        line-height: 1.65;
+        overflow-wrap: anywhere;
+      }
+
+      .nearby-list li + li {
+        margin-top: 4px;
+      }
+
+      .related-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        width: 100%;
+      }
+
+      .rel-card {
+        background: var(--surface-soft);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .rel-card:hover {
+        border-color: var(--sky);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .rel-card img {
+        display: block;
+        width: 100%;
+        height: 148px;
+        object-fit: cover;
+        background: #e2e8f0;
+      }
+
+      .rel-body {
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .rel-title {
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: var(--text);
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+
+      .rel-loc {
+        font-size: 0.8rem;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+
+      .rel-price {
+        margin-top: 6px;
+        font-weight: 800;
+        font-size: 0.94rem;
+        color: var(--orange);
+        overflow-wrap: anywhere;
+      }
+
+      .site-footer {
+        width: 100%;
+        background: var(--navy);
+        color: #e2e8f0;
+        border-top: 1px solid var(--border);
+        padding: 36px 20px 28px;
+        margin-top: auto;
+        overflow-x: clip;
+      }
+
+      .footer-inner {
+        max-width: 1080px;
+        width: 100%;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        min-width: 0;
+      }
+
+      .footer-inner > div:first-child {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .footer-logo {
+        width: 28px;
+        height: 28px;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .footer-brand span {
+        color: #7dd3fc;
+      }
+
+      .footer-copy {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #cbd5e1;
+        max-width: 440px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+        max-width: 100%;
+      }
+
+      .footer-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+        overflow-wrap: anywhere;
+      }
+
+      .footer-links a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      .footer-bottom {
+        max-width: 1080px;
+        width: 100%;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 860px) {
+        .related-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .gallery-main-wrap {
+          height: 340px;
+        }
+
+        .thumb-item {
+          flex: 0 0 84px;
+          width: 84px;
+          height: 58px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 11px 12px;
+        }
+
+        .brand {
+          font-size: 1.12rem;
+          gap: 7px;
+        }
+
+        .brand-logo {
+          width: 30px;
+          height: 30px;
+        }
+
+        .topbar-badge {
+          display: none;
+        }
+
+        .menu-toggle-btn {
+          display: inline-flex;
+        }
+
+        .topbar-right {
+          position: static;
+          gap: 0;
+        }
+
+        .topbar-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+          box-shadow: 0 12px 24px rgba(12, 44, 87, 0.12);
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 6px 12px 10px;
+        }
+
+        .topbar-nav.is-open {
+          display: flex;
+        }
+
+        .topbar-nav a {
+          padding: 11px 12px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+        }
+
+        .topbar-nav a:hover {
+          background: #f0f9ff;
+        }
+
+        .hero {
+          padding: 22px 12px 38px;
+        }
+
+        .container {
+          padding: 0 12px 56px;
+        }
+
+        .section-box {
+          padding: 16px;
+          border-radius: 14px;
+        }
+
+        .gallery-box {
+          padding: 10px;
+        }
+
+        .gallery-main-wrap {
+          height: auto;
+          aspect-ratio: 16 / 10;
+          border-radius: 10px;
+        }
+
+        .slider-btn {
+          width: 34px;
+          height: 34px;
+          font-size: 1.25rem;
+        }
+
+        .thumb-strip {
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .thumb-item {
+          flex: 0 0 74px;
+          width: 74px;
+          height: 52px;
+          border-radius: 6px;
+        }
+
+        .map-locked-wrap {
+          height: 230px;
+        }
+
+        .summary-bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .booking-panel {
+          justify-content: space-between;
+          padding-top: 12px;
+          border-top: 1px solid var(--border);
+        }
+
+        .price-meta {
+          text-align: left;
+        }
+
+        .price-amount {
+          font-size: 1.18rem;
+        }
+
+        .btn-wa {
+          padding: 10px 15px;
+          font-size: 0.86rem;
+        }
+
+        .nearby-two-col,
+        .related-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .site-footer {
+          padding: 28px 12px 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="topbar" class="topbar">
+      <div class="topbar-inner">
+        <a href="/" class="brand" aria-label="villa.web.id Beranda">
+          <svg
+            class="brand-logo"
+            viewBox="0 0 64 64"
+            width="34"
+            height="34"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="vw-badge-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0194f3" />
+                <stop offset="100%" stop-color="#0c2c57" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#vw-badge-bg)" />
+            <path
+              d="M14 33 L32 16 L50 33"
+              fill="none"
+              stroke="#ff5e1f"
+              stroke-width="5.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 31 V44 H43 V31"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="4.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M16 51 Q24 47 32 51 T48 51"
+              fill="none"
+              stroke="#7dd3fc"
+              stroke-width="3.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="brand-text">villa<span>.web.id</span></span>
+        </a>
+        <div class="topbar-right">
+          <nav id="topbar-nav" class="topbar-nav" aria-label="Navigasi utama">
+            <a href="/">Semua Villa</a>
+            <a href="/cara-pesan">Cara Pesan</a>
+            <a href="/bantuan">Bantuan</a>
+            <a href="/kontak">Kontak</a>
+            <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+          </nav>
+          <span class="topbar-badge">Sewa Villa Puncak, Cipanas &amp; Kota Bunga</span>
+          <button
+            type="button"
+            id="menu-toggle-btn"
+            class="menu-toggle-btn"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="topbar-nav"
+          >
+            &#9776;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Beranda</a>
+          <span>/</span>
+          <span>{villa.location}</span>
+          <span>/</span>
+          <span>{villa.name}</span>
+        </nav>
+
+        <div class="hero-top">
+          <div>
+            <h1>{villa.name}</h1>
+            <p class="hero-loc">{villa.location}</p>
+          </div>
+          <div class="hero-rating-chip">
+            <span class="hero-rating-score">{Number(villa.rating || 0).toFixed(1)}</span>
+            <span>
+              <strong>{getRatingLabel(villa.rating)}</strong> &bull; {villa.jumlah_ulasan || 0} ulasan
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main class="container">
+      <!-- Galeri: 1 Gambar Utama di Atas + Thumbnail di Bawah -->
+      <section class="section-box gallery-box" aria-label="Galeri foto villa">
+        <div id="gallery-main" class="gallery-main-wrap">
+          <img
+            id="hero-slide-img"
+            src={mainPhoto}
+            alt={villa.name}
+            loading="eager"
+            decoding="sync"
+            onerror={`this.onerror=null;this.src='${fallbackImage}';`}
+          />
+          {
+            galleryPhotos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  id="slide-prev-btn"
+                  class="slider-btn prev"
+                  aria-label="Foto sebelumnya"
+                >
+                  &#8249;
+                </button>
+                <button
+                  type="button"
+                  id="slide-next-btn"
+                  class="slider-btn next"
+                  aria-label="Foto berikutnya"
+                >
+                  &#8250;
+                </button>
+              </>
+            )
+          }
+          <span id="photo-badge" class="photo-badge">1 / {galleryPhotos.length}</span>
+        </div>
+
+        <div id="thumb-strip" class="thumb-strip" aria-label="Thumbnail foto">
+          {
+            galleryPhotos.map((src, idx) => (
+              <button
+                type="button"
+                class:list={["thumb-item", idx === 0 && "active"]}
+                data-photo-index={idx}
+                aria-label={`Lihat foto ${idx + 1} ${villa.name}`}
+              >
+                <img
+                  src={src}
+                  alt={`Thumbnail ${idx + 1} ${villa.name}`}
+                  loading="eager"
+                  decoding="sync"
+                  onerror={`this.onerror=null;this.src='${fallbackImage}';`}
+                />
+              </button>
+            ))
+          }
+        </div>
+      </section>
+
+      <!-- Ringkasan Spesifikasi, Harga & Tombol Booking -->
+      <section class="section-box" aria-label="Ringkasan dan pemesanan">
+        <div class="summary-bar">
+          <div class="spec-chips">
+            <span class="spec-chip">{villa.jumlah_kamar} Kamar Tidur</span>
+            <span class="spec-chip">Maks. {villa.kapasitas_maks} Tamu</span>
+            <span class="spec-chip">{villa.location}</span>
+          </div>
+
+          <div class="booking-panel">
+            <div class="price-meta">
+              <span class="price-label">Harga mulai / malam</span>
+              <span class="price-amount">{priceFormatted}</span>
+            </div>
+            <a
+              id="wa-booking-btn"
+              class="btn-wa"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Booking via WA
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deskripsi Villa -->
+      {
+        descriptionText && (
+          <section class="section-box" aria-label="Deskripsi villa">
+            <h2 class="section-heading">Tentang {villa.name}</h2>
+            <p class="desc-body">{descriptionText}</p>
+          </section>
+        )
+      }
+
+      <!-- Fasilitas Villa -->
+      {
+        facilities.length > 0 && (
+          <section class="section-box" aria-label="Fasilitas villa">
+            <h2 class="section-heading">Fasilitas Unggulan &amp; Perlengkapan</h2>
+            <div class="facility-grid">
+              {facilities.map((item) => <span class="facility-badge">{item}</span>)}
+            </div>
+          </section>
+        )
+      }
+
+      <!-- Peta Lokasi (Non-Clickable) -->
+      <section class="section-box" aria-label="Peta lokasi villa">
+        <h2 class="section-heading">Lokasi Peta — {villa.name}</h2>
+        <div class="map-locked-wrap">
+          <iframe
+            title={`Peta lokasi ${villa.name} ${villa.location}`}
+            src={mapEmbedUrl}
+            loading="lazy"
+            tabindex="-1"
+            aria-hidden="true"
+          ></iframe>
+          <div class="map-click-shield" aria-hidden="true"></div>
+        </div>
+        <div class="map-caption">
+          Area: <strong>{villa.name}</strong> &bull; {villa.location}
+        </div>
+      </section>
+
+      <!-- Wisata & Restoran Terdekat -->
+      {
+        (wisataList.length > 0 || restoList.length > 0) && (
+          <section class="section-box" aria-label="Lokasi sekitar villa">
+            <div class="nearby-two-col">
+              {
+                wisataList.length > 0 && (
+                  <div class="nearby-card">
+                    <h2 class="section-heading">Wisata Terdekat</h2>
+                    <ul class="nearby-list">
+                      {wisataList.map((w) => <li>{w}</li>)}
+                    </ul>
+                  </div>
+                )
+              }
+              {
+                restoList.length > 0 && (
+                  <div class="nearby-card">
+                    <h2 class="section-heading">Restoran &amp; Kuliner Terdekat</h2>
+                    <ul class="nearby-list">
+                      {restoList.map((r) => <li>{r}</li>)}
+                    </ul>
+                  </div>
+                )
+              }
+            </div>
+          </section>
+        )
+      }
+
+      <!-- Villa Lainnya -->
+      {
+        relatedVillas.length > 0 && (
+          <section class="section-box" aria-label="Rekomendasi villa lainnya">
+            <h2 class="section-heading">Villa Lainnya di villa.web.id</h2>
+            <div class="related-grid">
+              {
+                relatedVillas.map((rv) => {
+                  const rvPhoto = resolveAllGalleryUrls(rv)[0] || fallbackImage;
+                  return (
+                    <a href={`/villa/${rv.slug}`} class="rel-card">
+                      <img
+                        src={rvPhoto}
+                        alt={rv.name}
+                        loading="lazy"
+                        onerror={`this.onerror=null;this.src='${fallbackImage}';`}
+                      />
+                      <div class="rel-body">
+                        <div class="rel-title">{rv.name}</div>
+                        <div class="rel-loc">{rv.location}</div>
+                        <div class="rel-loc">
+                          {rv.jumlah_kamar} Kamar &bull; Maks. {rv.kapasitas_maks} Tamu
+                        </div>
+                        <div class="rel-price">{formatRupiah(rv.price_per_night)} / malam</div>
+                      </div>
+                    </a>
+                  );
+                })
+              }
+            </div>
+          </section>
+        )
+      }
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <svg
+              class="footer-logo"
+              viewBox="0 0 64 64"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#0194f3" />
+              <path
+                d="M14 33 L32 16 L50 33"
+                fill="none"
+                stroke="#ff5e1f"
+                stroke-width="5.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 31 V44 H43 V31"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 51 Q24 47 32 51 T48 51"
+                fill="none"
+                stroke="#e0f2fe"
+                stroke-width="3.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>villa<span>.web.id</span></span>
+          </div>
+          <p class="footer-copy">
+            Layanan sewa villa di kawasan Puncak, Cipanas, Cisarua, dan Kota Bunga dengan proses booking jelas dan transparan.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Tautan informasi">
+          <a href="/cara-pesan">Cara Pesan</a>
+          <a href="/bantuan">Bantuan</a>
+          <a href="/kontak">Kontak</a>
+          <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>villa.web.id</span>
+        <span>Puncak &bull; Cipanas &bull; Cisarua &bull; Kota Bunga</span>
+      </div>
+    </footer>
+
+    <script
+      is:inline
+      define:vars={{
+        villaName: villa.name,
+        villaLocation: villa.location,
+        priceFormatted,
+        fallbackImage,
+        galleryPhotos,
+      }}
+    >
+      function initVillaDetailPage() {
+        const WA_NUMBER = "6281234567890";
+
+        const menuToggleBtn = document.getElementById("menu-toggle-btn");
+        const topbarNav = document.getElementById("topbar-nav");
+        const topbarEl = document.getElementById("topbar");
+
+        function setMobileMenuOpen(isOpen) {
+          if (!topbarNav || !menuToggleBtn) return;
+          topbarNav.classList.toggle("is-open", isOpen);
+          menuToggleBtn.setAttribute("aria-expanded", String(isOpen));
+          menuToggleBtn.innerHTML = isOpen ? "&times;" : "&#9776;";
+          menuToggleBtn.setAttribute(
+            "aria-label",
+            isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"
+          );
+        }
+
+        menuToggleBtn?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isOpen = topbarNav?.classList.contains("is-open") || false;
+          setMobileMenuOpen(!isOpen);
+        });
+
+        topbarNav?.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", () => setMobileMenuOpen(false));
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!topbarNav?.classList.contains("is-open")) return;
+          const target = e.target;
+          if (target instanceof Node && !topbarNav.contains(target) && target !== menuToggleBtn) {
+            setMobileMenuOpen(false);
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") setMobileMenuOpen(false);
+        });
+
+        window.addEventListener("resize", () => {
+          if (window.innerWidth > 640) setMobileMenuOpen(false);
+        });
+
+        function handleStickyHeader() {
+          if (!topbarEl) return;
+          topbarEl.classList.toggle("is-stuck", window.scrollY > 4);
+        }
+
+        window.addEventListener("scroll", handleStickyHeader, { passive: true });
+        handleStickyHeader();
+
+        const photos =
+          Array.isArray(galleryPhotos) && galleryPhotos.length > 0
+            ? galleryPhotos
+            : [fallbackImage];
+
+        photos.forEach((src) => {
+          if (!src) return;
+          const pre = new Image();
+          pre.decoding = "sync";
+          pre.src = src;
+        });
+
+        const galleryMain = document.getElementById("gallery-main");
+        const heroImg = document.getElementById("hero-slide-img");
+        const prevBtn = document.getElementById("slide-prev-btn");
+        const nextBtn = document.getElementById("slide-next-btn");
+        const badgeEl = document.getElementById("photo-badge");
+        const stripEl = document.getElementById("thumb-strip");
+        const thumbBtns = Array.from(document.querySelectorAll(".thumb-item"));
+        const waBtn = document.getElementById("wa-booking-btn");
+
+        let currentIdx = 0;
+
+        function goToSlide(index, scrollThumbIntoView = false) {
+          const total = photos.length;
+          currentIdx = ((index % total) + total) % total;
+          const nextSrc = photos[currentIdx] || fallbackImage;
+
+          if (heroImg instanceof HTMLImageElement) {
+            heroImg.style.transition = "none";
+            heroImg.style.transform = "";
+            heroImg.style.opacity = "1";
+            heroImg.onerror = () => {
+              heroImg.onerror = null;
+              heroImg.src = fallbackImage;
+            };
+            heroImg.src = nextSrc;
+            if (typeof heroImg.decode === "function") {
+              heroImg.decode().catch(() => {});
+            }
+          }
+
+          if (badgeEl) {
+            badgeEl.textContent = `${currentIdx + 1} / ${total}`;
+          }
+
+          thumbBtns.forEach((btn, i) => {
+            const isActive = i === currentIdx;
+            btn.classList.toggle("active", isActive);
+            if (isActive && scrollThumbIntoView && stripEl instanceof HTMLElement) {
+              const targetScroll =
+                btn.offsetLeft - stripEl.offsetLeft - (stripEl.clientWidth - btn.offsetWidth) / 2;
+              stripEl.scrollTo({
+                left: Math.max(0, targetScroll),
+                behavior: "auto",
+              });
+            }
+          });
+        }
+
+        prevBtn?.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          goToSlide(currentIdx - 1, true);
+        });
+
+        nextBtn?.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          goToSlide(currentIdx + 1, true);
+        });
+
+        thumbBtns.forEach((btn, i) => {
+          btn.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const rawIdx = Number(btn.getAttribute("data-photo-index"));
+            goToSlide(Number.isNaN(rawIdx) ? i : rawIdx, true);
+          });
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const rawIdx = Number(btn.getAttribute("data-photo-index"));
+            goToSlide(Number.isNaN(rawIdx) ? i : rawIdx, true);
+          });
+        });
+
+        let activePointerId = null;
+        let startX = 0;
+        let startY = 0;
+        let isHorizontalSwipe = false;
+
+        galleryMain?.addEventListener("pointerdown", (e) => {
+          if (photos.length <= 1) return;
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          if (e.target instanceof Element && e.target.closest(".slider-btn")) return;
+
+          activePointerId = e.pointerId;
+          startX = e.clientX;
+          startY = e.clientY;
+          isHorizontalSwipe = false;
+          galleryMain.classList.add("is-dragging");
+
+          try {
+            galleryMain.setPointerCapture(e.pointerId);
+          } catch {
+            // Abaikan jika tidak didukung
+          }
+        });
+
+        galleryMain?.addEventListener("pointermove", (e) => {
+          if (activePointerId === null || e.pointerId !== activePointerId) return;
+
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+
+          if (!isHorizontalSwipe && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+            isHorizontalSwipe = true;
+          }
+
+          if (isHorizontalSwipe && heroImg instanceof HTMLImageElement) {
+            if (e.cancelable) e.preventDefault();
+            const clamped = Math.max(-52, Math.min(52, dx * 0.35));
+            heroImg.style.transition = "none";
+            heroImg.style.transform = `translateX(${clamped}px)`;
+          }
+        });
+
+        function finishMainPointer(e) {
+          if (activePointerId === null || e.pointerId !== activePointerId) return;
+
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+
+          if (heroImg instanceof HTMLImageElement) {
+            heroImg.style.transition = "none";
+            heroImg.style.transform = "";
+          }
+
+          if (isHorizontalSwipe && Math.abs(dx) > 22 && Math.abs(dx) >= Math.abs(dy) * 0.85) {
+            if (dx < 0) {
+              goToSlide(currentIdx + 1, true);
+            } else {
+              goToSlide(currentIdx - 1, true);
+            }
+          }
+
+          activePointerId = null;
+          isHorizontalSwipe = false;
+          galleryMain?.classList.remove("is-dragging");
+        }
+
+        galleryMain?.addEventListener("pointerup", finishMainPointer);
+        galleryMain?.addEventListener("pointercancel", finishMainPointer);
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowLeft") goToSlide(currentIdx - 1, true);
+          if (e.key === "ArrowRight") goToSlide(currentIdx + 1, true);
+        });
+
+        if (waBtn instanceof HTMLAnchorElement) {
+          const waText = encodeURIComponent(
+            `Halo villa.web.id, saya ingin tanya ketersediaan & booking ${villaName} (${villaLocation}) dengan harga mulai ${priceFormatted}/malam.`
+          );
+          waBtn.href = `https://wa.me/${WA_NUMBER}?text=${waText}`;
+        }
+      }
+
+      initVillaDetailPage();
+      document.addEventListener("astro:after-swap", initVillaDetailPage);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2249 @@
+---
+import villas from '../../data/datavilla.json';
+import { Image } from 'astro:assets';
+
+export const prerender = true;
+
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#0770cd"/><path d="M14 33 L32 16 L50 33" fill="none" stroke="#ff5e1f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 31 V44 H43 V31" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 51 Q24 47 32 51 T48 51" fill="none" stroke="#7dd3fc" stroke-width="3.8" stroke-linecap="round"/></svg>`;
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+
+// --- LOGIKA MAPPING GAMBAR LOKAL ---
+const localImages = import.meta.glob<{ default: ImageMetadata }>('/src/assets/villas/**/*.{jpeg,jpg,png,webp}');
+
+function getLocalAsset(cloudinaryUrl) {
+  if (!cloudinaryUrl) return null;
+  const parts = cloudinaryUrl.split(/\/v\d+\//);
+  if (parts.length < 2) return null;
+  const fileName = decodeURIComponent(parts[1]);
+  const localPath = `/src/assets/villas/${fileName}`;
+  return localImages[localPath] || null;
+}
+
+export async function getStaticPaths() {
+  const keywords = [
+    "Villa Puncak Dekat Taman Bunga Nusantara Sewa 1 Rumah",
+    "Pilihan Villa Dekat Kebun Raya Cibodas View Gunung",
+    "Sewa Villa di Kota Bunga Dekat Little Venice Puncak",
+    "Villa Murah Dekat Arena Fantasi Kota Bunga untuk Anak",
+    "Villa di Puncak Resort Dekat Wisata Kebun Petik Stroberi",
+    "Villa Keluarga Dekat Taman Kelinci dan Taman Domba Puncak Resort",
+    "Villa Puncak Pass Dekat Lokasi Gantole dan Paralayang",
+    "Staycation Dekat Telaga Warna Puncak Pass Paling Sejuk",
+    "Villa Puncak Dekat Sate Maranggi Sari Asih Cipanas",
+    "Villa di Cipanas Dekat Restoran Bumi Aki dan Bumi Nini",
+    "Sewa Villa Dekat Sate Shinta Cipanas Akses Mudah",
+    "Villa Murah Dekat Alam Sunda Cipanas untuk Rombongan",
+    "Booking Villa Dekat Nicole's Kitchen dan Lounge Puncak",
+    "Villa Puncak Dekat Amen Chinese Restaurant dan Simpang Raya",
+    "Rekomendasi Villa Cipanas Dekat Pasar Grosir dan Kuliner",
+    "Rekomendasi Villa Puncak untuk Keluarga Besar",
+    "Daftar Villa Puncak yang Cocok untuk Liburan Akhir Pekan Weekend",
+    "Villa Puncak untuk Staycation Keluarga dengan Fasilitas Terlengkap",
+    "Top Villa Puncak untuk Liburan Sekolah Sewa 1 Rumah Full Plot",
+    "Villa Puncak Harga Per Malam Dibawah 2 Juta Hemat dan Nyaman",
+    "Sewa Villa Harian di Puncak terlengkap",
+    "Villa Puncak Paling Dicari untuk Libur Lebaran dan Tahun Baru",
+    "Update 2026 Villa Puncak yang Pas untuk Short-Escape dari Jakarta",
+    "Villa Puncak Sewa 1 Rumah Full Privasi Total Tanpa Gangguan",
+    "Villa Puncak Kapasitas 20 Orang Sewa Seluruh Bangunan",
+    "Pilihan Sewa Villa Mewah di Puncak",
+    "Daftar Villa Murah di Puncak Satu Rumah untuk Rombongan",
+    "Villa Puncak Konsep Rumah Kayu Menginap Serasa di Alam",
+    "Villa Puncak Pilihan Keluarga Rumah Full dengan Dapur Sendiri",
+    "Villa Puncak dengan Area Outdoor Luas untuk Acara Keluarga",
+    "Villa di Area Coolibah Rekomendasi Staycation Keluarga Tenang",
+    "Villa Puncak Private Pool Pilihan Staycation Paling Eksklusif",
+    "Villa Puncak dengan Fasilitas Karaoke dan Billiard Seru-seruan Bareng",
+    "Villa Puncak View Gunung Bangun Tidur Langsung Lihat Pemandangan",
+    "Villa Puncak Fasilitas Water Heater Menginap Nyaman Saat Dingin",
+    "Villa Puncak untuk Family Gathering dan Acara Kantor",
+    "Villa Puncak Paling Instagramable Staycation Sambil Foto-foto",
+    "Villa Puncak yang Ramah Anak Kid-Friendly Ada Playground",
+    "Villa Puncak untuk Acara Arisan atau Reuni Sekolah",
+    "Villa Puncak Modern Minimalis Sewa Per Malam Gaya Kekinian"
+  ];
+
+  return keywords.map((title) => {
+    const slug = title.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-');
+    const titleLower = title.toLowerCase();
+
+    let filteredVillas = [...villas];
+    if (titleLower.includes("cisarua")) {
+      filteredVillas = filteredVillas.filter(v => v.location.toLowerCase().includes("cisarua"));
+    } else if (titleLower.includes("cipanas") || titleLower.includes("sate maranggi")) {
+      filteredVillas = filteredVillas.filter(v => v.location.toLowerCase().includes("cipanas"));
+    } else if (titleLower.includes("kota bunga")) {
+      filteredVillas = filteredVillas.filter(v => v.location.toLowerCase().includes("kota bunga"));
+    }
+
+    const shuffled = filteredVillas.sort(() => 0.5 - Math.random());
+    const selectedVillas = shuffled.slice(0, 30);
+
+    const relatedLinks = keywords
+      .filter(k => k !== title)
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 6)
+      .map(k => ({
+        name: k,
+        url: `/blog/${k.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-')}/`
+      }));
+
+    return { params: { slug }, props: { title, selectedVillas, relatedLinks, slug } };
+  });
+}
+
+const { title, selectedVillas, relatedLinks, slug } = Astro.props;
+const villaCount = selectedVillas.length;
+const minPrice = villaCount > 0 ? Math.min(...selectedVillas.map(v => v.price_per_night)) : 0;
+const maxPrice = villaCount > 0 ? Math.max(...selectedVillas.map(v => v.price_per_night)) : 0;
+const maxCapStat = villaCount > 0 ? Math.max(...selectedVillas.map(v => v.kapasitas_maks)) : 0;
+const avgRating = villaCount > 0
+  ? (selectedVillas.reduce((acc, v) => acc + v.rating, 0) / villaCount).toFixed(1)
+  : "4.8";
+const formatIDR = (n) => new Intl.NumberFormat('id-ID').format(n);
+
+const canonicalUrl = `https://villa.web.id/blog/${slug}`;
+const currentUrl = canonicalUrl;
+
+const pageTitle = `${villaCount} ${title} - Update 2026 | villa.web.id`;
+const pageDescription = `Cek daftar ${villaCount} rekomendasi ${title} terbaru tahun 2026. Harga sewa mulai Rp ${formatIDR(minPrice)} per malam. Rating rata-rata ${avgRating}/5.`;
+
+// --- DETEKSI LOKASI DARI JUDUL ---
+const getLocationFromTitle = () => {
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes("cipanas")) return "Cipanas";
+  if (titleLower.includes("kota bunga")) return "Kota Bunga";
+  if (titleLower.includes("cisarua")) return "Cisarua";
+  return "Puncak";
+};
+
+const location = getLocationFromTitle();
+
+// --- GENERATE PARAGRAPHS UNTUK ARTIKEL ---
+const generateArticleParagraphs = () => {
+  const hasPrivatePool = selectedVillas.some(v => v.private_pool);
+  const hasViewGunung = selectedVillas.some(v => v.view_gunung);
+  const hasMewah = selectedVillas.some(v => v.mewah);
+  const hasHalamanLuas = selectedVillas.some(v => v.halaman_luas);
+  const maxCapacity = villaCount > 0 ? Math.max(...selectedVillas.map(v => v.kapasitas_maks)) : 15;
+  const minCapacity = villaCount > 0 ? Math.min(...selectedVillas.map(v => v.kapasitas_maks)) : 4;
+  const avgCapacity = villaCount > 0 ? Math.round(selectedVillas.reduce((acc, v) => acc + v.kapasitas_maks, 0) / villaCount) : 10;
+  const avgRooms = villaCount > 0 ? Math.round(selectedVillas.reduce((acc, v) => acc + v.jumlah_kamar, 0) / villaCount) : 3;
+
+  return [
+    {
+      id: "pengantar",
+      title: "Pengantar",
+      content: `${location} merupakan destinasi wisata favorit bagi masyarakat Jabodetabek yang ingin melepas penat dari hiruk pikuk perkotaan. Dengan udara sejuk yang khas pegunungan dan pemandangan alam yang memukau, kawasan ini menjadi pilihan utama untuk liburan keluarga, rombongan, maupun pasangan. Melalui daftar <strong>${title}</strong>, Anda dapat menemukan berbagai pilihan akomodasi terbaik yang sesuai dengan kebutuhan dan anggaran.`
+    },
+    {
+      id: "keunggulan",
+      title: "Keunggulan Menginap di " + location,
+      content: `Menginap di ${location} menawarkan pengalaman yang tak terlupakan. Udara segar dengan suhu rata-rata 15-22 derajat Celcius memberikan kenyamanan alami yang sulit ditemukan di perkotaan. Pemandangan hijau pegunungan yang membentang luas menjadi terapi mata yang menenangkan jiwa.`
+    },
+    {
+      id: "fasilitas",
+      title: "Fasilitas dan Spesifikasi Villa",
+      content: `Dari total ${villaCount} properti yang kami rekomendasikan, Anda bisa menemukan villa dengan berbagai spesifikasi menarik. ${hasPrivatePool ? 'Beberapa unit dilengkapi dengan kolam renang pribadi yang memberikan privasi maksimal bagi Anda dan keluarga.' : ''} ${hasViewGunung ? 'Pemandangan gunung yang spektakuler menjadi daya tarik utama, di mana Anda bisa menikmati matahari terbit dan terbenam langsung dari teras villa.' : ''} ${hasMewah ? 'Bagi Anda yang menginginkan kemewahan, tersedia pilihan villa dengan interior premium dan layanan eksklusif.' : ''} ${hasHalamanLuas ? 'Halaman yang luas juga tersedia untuk berbagai aktivitas outdoor seperti barbekyu atau bermain bersama anak-anak.' : ''}`
+    },
+    {
+      id: "kapasitas",
+      title: "Pilihan Kapasitas Villa",
+      content: `Berbicara tentang kapasitas, villa-villa di ${location} dapat menampung tamu dengan jumlah yang bervariasi. Mulai dari ${minCapacity} orang hingga ${maxCapacity} orang, dengan rata-rata ${avgCapacity} orang per villa. ${maxCapacity > 15 ? 'Beberapa unit bahkan mampu menampung hingga 20 orang, sangat ideal untuk acara keluarga besar atau reuni.' : 'Kapasitas ini sangat cocok untuk liburan keluarga inti maupun rombongan kecil.'} ${avgRooms > 2 ? `Dengan rata-rata ${avgRooms} kamar tidur, setiap villa menyediakan ruang yang nyaman untuk beristirahat setelah seharian beraktivitas.` : 'Kamar tidur yang tersedia cukup untuk keluarga kecil atau pasangan yang ingin menikmati waktu berdua.'}`
+    },
+    {
+      id: "harga",
+      title: "Rentang Harga yang Kompetitif",
+      content: `Dari segi harga, kami menyajikan pilihan yang sangat beragam. Harga sewa mulai dari Rp ${formatIDR(minPrice)} per malam, ${maxPrice > minPrice ? `dan untuk villa dengan fasilitas lebih lengkap dan luas, harga bisa mencapai Rp ${formatIDR(maxPrice)} per malam.` : 'dengan kualitas yang tetap terjaga.'} ${minPrice < 2000000 ? `Dengan budget di bawah 2 jutaan, Anda sudah bisa mendapatkan villa yang nyaman dan strategis di ${location}.` : ''} Semua harga yang tercantum sudah termasuk pajak dan biaya layanan, sehingga Anda tidak perlu khawatir dengan biaya tersembunyi.`
+    },
+    {
+      id: "harga-detail",
+      title: "Pilihan Harga untuk Semua Budget",
+      content: `${selectedVillas.some(v => v.price_per_night < 1500000) ? 'Bagi Anda yang mencari harga lebih hemat, tersedia pilihan villa dengan tarif di bawah 1,5 juta rupiah per malam. Cocok untuk liburan singkat atau staycation akhir pekan tanpa menguras dompet.' : ''} ${selectedVillas.some(v => v.price_per_night > 5000000) ? 'Sementara itu, bagi Anda yang menginginkan pengalaman menginap premium, tersedia villa dengan fasilitas lengkap dan harga di atas 5 juta rupiah per malam.' : ''}`
+    },
+    {
+      id: "lokasi",
+      title: "Lokasi Strategis dan Akses Mudah",
+      content: `Lokasi ${location} juga memiliki akses yang sangat strategis. ${title.includes('Dekat') ? 'Seperti yang tercantum dalam judul, villa-villa ini berada di dekat berbagai tempat wisata populer seperti taman bunga, kebun raya, restoran terkenal, dan pusat kuliner.' : `Dengan akses jalan yang baik dan mudah dijangkau dari Jakarta, ${location} menjadi pilihan tepat untuk short escape akhir pekan.`} ${selectedVillas.some(v => v.rating > 9) ? 'Beberapa properti bahkan mendapatkan rating di atas 9 dari tamu sebelumnya, menunjukkan kualitas layanan dan kenyamanan yang sangat memuaskan.' : ''}`
+    },
+    {
+      id: "akses",
+      title: "Akses Perjalanan ke " + location,
+      content: `Perjalanan dari Jakarta menuju ${location} biasanya memakan waktu sekitar 2-3 jam tergantung lalu lintas. Dengan adanya tol baru dan jalur alternatif, akses menuju kawasan ini semakin mudah. Bagi Anda yang menggunakan transportasi umum, tersedia berbagai pilihan bus dan travel yang melayani rute Jakarta-${location}.`
+    },
+    {
+      id: "tips-memilih",
+      title: "Tips Memilih Villa yang Tepat",
+      content: `Bagi Anda yang berencana menginap di ${location}, kami sarankan untuk memesan jauh-jauh hari terutama pada musim liburan dan akhir pekan. ${selectedVillas.length > 20 ? 'Dengan lebih dari 20 pilihan villa yang tersedia, Anda pasti akan menemukan yang sesuai dengan preferensi Anda.' : 'Meskipun jumlah pilihan terbatas, setiap villa yang kami tawarkan telah melalui kurasi ketat untuk memastikan kualitas terbaik.'} Jangan lupa untuk memanfaatkan promo spesial yang kami tawarkan untuk pemesanan minimal 3 malam.`
+    },
+    {
+      id: "tips-detail",
+      title: "Hal yang Perlu Diperhatikan",
+      content: `Beberapa hal yang perlu diperhatikan saat memilih villa: <strong>pertama</strong>, perhatikan jumlah kamar dan kapasitas tamu yang bisa ditampung. <strong>Kedua</strong>, cek fasilitas yang tersedia seperti kolam renang, dapur, dan area parkir. <strong>Ketiga</strong>, baca ulasan dari tamu sebelumnya untuk mendapatkan gambaran nyata tentang pengalaman menginap. <strong>Keempat</strong>, perhatikan lokasi villa dan akses menuju tempat wisata yang ingin dikunjungi.`
+    },
+    {
+      id: "aktivitas",
+      title: "Aktivitas Menarik di " + location,
+      content: `${location} juga menawarkan berbagai aktivitas menarik yang bisa Anda nikmati selama menginap. ${hasViewGunung ? 'Mulai dari hiking ringan menikmati panorama gunung, ' : ''}${hasPrivatePool ? 'berenang di kolam renang pribadi, ' : ''}${hasHalamanLuas ? 'barbekyu bersama keluarga di halaman luas, ' : ''}hingga mengunjungi berbagai tempat wisata kuliner yang tersebar di sekitar ${location}. ${selectedVillas.some(v => v.mewah) ? 'Villa-villa mewah juga sering menyediakan paket tur atau aktivitas khusus bagi tamunya.' : ''}`
+    },
+    {
+      id: "kuliner",
+      title: "Kuliner Khas " + location,
+      content: `Bagi pecinta kuliner, ${location} terkenal dengan berbagai hidangan khas seperti sate maranggi, nasi liwet, dan aneka jajanan pasar. Restoran-restoran di sekitar area villa menawarkan pemandangan alam yang indah, membuat pengalaman bersantap menjadi lebih berkesan. Jangan lupa untuk mencicipi kopi lokal yang terkenal dengan cita rasa khas pegunungan.`
+    },
+    {
+      id: "kesimpulan",
+      title: "Kesimpulan",
+      content: `Dengan rating rata-rata ${avgRating} dari 5 bintang yang diberikan oleh tamu sebelumnya, kami yakin pengalaman menginap Anda di ${location} akan sangat berkesan. ${parseFloat(avgRating) > 4.5 ? 'Rating yang sangat tinggi ini menunjukkan kepuasan tamu yang telah menginap, dan kami berkomitmen untuk menjaga standar kualitas tersebut.' : 'Kami terus berupaya meningkatkan pelayanan agar setiap tamu mendapatkan pengalaman terbaik.'} ${location} menawarkan kombinasi sempurna antara keindahan alam, kenyamanan akomodasi, dan keramahan masyarakat lokal.`
+    },
+    {
+      id: "penutup",
+      title: "Segera Booking Villa Favorit Anda!",
+      content: `Jadi tunggu apa lagi? Segera rencanakan liburan Anda dan booking villa favorit di ${location} sekarang juga! Nikmati udara segar, pemandangan indah, dan pengalaman menginap yang tak terlupakan bersama orang-orang terkasih. ${location} siap menyambut Anda dengan segala pesonanya.`
+    }
+  ];
+};
+
+const articleParagraphs = generateArticleParagraphs();
+
+// --- GENERATE FAQ UNIK ---
+const generateFAQ = () => {
+  const locationName = location;
+  const hasPrivatePool = selectedVillas.some(v => v.private_pool);
+  const hasViewGunung = selectedVillas.some(v => v.view_gunung);
+  const maxCapacity = villaCount > 0 ? Math.max(...selectedVillas.map(v => v.kapasitas_maks)) : 15;
+  const avgCapacity = villaCount > 0 ? Math.round(selectedVillas.reduce((acc, v) => acc + v.kapasitas_maks, 0) / villaCount) : 10;
+  const avgRooms = villaCount > 0 ? Math.round(selectedVillas.reduce((acc, v) => acc + v.jumlah_kamar, 0) / villaCount) : 3;
+
+  return [
+    {
+      question: `Apa saja pilihan villa terbaik di ${locationName}?`,
+      answer: `Kami menyediakan ${villaCount} pilihan villa terbaik di ${locationName} dengan berbagai spesifikasi. ${hasPrivatePool ? 'Tersedia villa dengan kolam renang pribadi untuk pengalaman menginap yang lebih eksklusif.' : ''} ${hasViewGunung ? 'Villa dengan pemandangan gunung juga tersedia bagi Anda yang ingin menikmati keindahan alam.' : ''} Semua villa telah melalui kurasi ketat untuk memastikan kualitas dan kenyamanan tamu.`
+    },
+    {
+      question: `Berapa harga sewa villa di ${locationName}?`,
+      answer: `Harga sewa villa di ${locationName} sangat bervariasi, mulai dari Rp ${formatIDR(minPrice)} per malam. ${maxPrice > minPrice ? `Untuk villa dengan fasilitas premium dan kapasitas lebih besar, harga bisa mencapai Rp ${formatIDR(maxPrice)} per malam.` : ''} Harga sudah termasuk pajak dan biaya layanan. Kami juga menawarkan diskon untuk pemesanan jangka panjang.`
+    },
+    {
+      question: `Berapa kapasitas villa di ${locationName}?`,
+      answer: `Villa-villa di ${locationName} memiliki kapasitas yang bervariasi. Rata-rata villa dapat menampung sekitar ${avgCapacity} orang, dengan kapasitas maksimal mencapai ${maxCapacity} orang. ${avgRooms > 2 ? `Dengan rata-rata ${avgRooms} kamar tidur, villa-villa ini sangat ideal untuk liburan keluarga atau rombongan.` : 'Kamar yang tersedia cukup untuk keluarga kecil atau pasangan.'}`
+    },
+    {
+      question: `Fasilitas apa saja yang tersedia di villa ${locationName}?`,
+      answer: `Villa-villa di ${locationName} dilengkapi dengan berbagai fasilitas modern. ${hasPrivatePool ? 'Beberapa unit memiliki kolam renang pribadi yang bisa dinikmati kapan saja.' : ''} ${hasViewGunung ? 'Pemandangan gunung yang indah dapat dinikmati langsung dari teras villa.' : ''} Fasilitas standar lainnya termasuk AC, TV, dapur lengkap, area parkir, dan akses WiFi gratis. ${selectedVillas.some(v => v.mewah) ? 'Untuk villa mewah, tersedia juga fasilitas tambahan seperti karaoke, billiard, dan layanan concierge.' : ''}`
+    },
+    {
+      question: `Bagaimana cara booking villa di ${locationName}?`,
+      answer: `Proses booking villa di ${locationName} sangat mudah dan cepat. Anda bisa mengikuti langkah-langkah berikut: 1) Pilih villa favorit dari daftar di atas, 2) Cek ketersediaan tanggal yang diinginkan, 3) Isi data pemesanan dengan lengkap, 4) Lakukan pembayaran melalui transfer bank atau kartu kredit yang aman, 5) Konfirmasi instan akan dikirim ke email Anda. Tim kami siap membantu Anda 24 jam.`
+    },
+    {
+      question: `Apakah ada diskon untuk pemesanan jangka panjang di ${locationName}?`,
+      answer: `Ya! Kami menawarkan diskon menarik untuk pemesanan jangka panjang: 5% untuk pemesanan 3-6 malam, 10% untuk 7-13 malam, dan 15% untuk 14+ malam. ${maxCapacity > 10 ? 'Untuk rombongan besar dengan kapasitas di atas 10 orang, kami juga memberikan penawaran spesial yang bisa didiskusikan dengan tim kami.' : ''} Diskon berlaku otomatis saat checkout. Hubungi kami untuk informasi promo spesial lainnya!`
+    }
+  ];
+};
+
+const faqData = generateFAQ();
+
+const createVillaSlug = (name) => {
+  return name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+};
+
+// --- SCHEMA UNIFIED ---
+const unifiedSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://villa.web.id/" },
+        { "@type": "ListItem", "position": 2, "name": "Blog Villa", "item": "https://villa.web.id/blog/" },
+        { "@type": "ListItem", "position": 3, "name": title, "item": currentUrl }
+      ]
+    },
+    {
+      "@type": "ItemList",
+      "name": `Daftar ${title}`,
+      "numberOfItems": villaCount,
+      "itemListElement": selectedVillas.map((v, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Accommodation",
+          "name": v.name,
+          "url": `https://villa.web.id/villa/${v.id}-${createVillaSlug(v.name)}/`,
+          "image": v.main_photo_url,
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": v.location,
+            "addressRegion": "Jawa Barat",
+            "addressCountry": "ID"
+          }
+        }
+      }))
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": faqData.map(faq => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    }
+  ]
+};
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="villa.web.id" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(unifiedSchema)} />
+    <style>
+      :root {
+        --tvk-sky: #0194f3;
+        --tvk-blue: #0770cd;
+        --tvk-navy: #0c2c57;
+        --tvk-orange: #ff5e1f;
+        --tvk-orange-dark: #e64d12;
+        --bg: #f4f7fa;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+
+        --primary: #0194f3;
+        --primary-dark: #0770cd;
+        --primary-light: #e6f4ff;
+        --green: #00875a;
+        --green-light: #e3fcef;
+        --orange: #ff5e1f;
+        --orange-light: #fff3ed;
+        --text-muted: #64748b;
+        --text-light: #64748b;
+        --bg-body: #f4f7fa;
+        --bg-white: #ffffff;
+        --shadow: 0 4px 14px rgba(12, 44, 87, 0.05);
+        --shadow-hover: 0 10px 24px rgba(1, 148, 243, 0.12);
+        --radius: 14px;
+        --max-width: 1080px;
+        --font-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --font-size-body: 16px;
+        --line-height-body: 1.75;
+        --max-width-text: 74ch;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background: var(--bg-body);
+        font-family: var(--font-base);
+        font-size: var(--font-size-body);
+        line-height: var(--line-height-body);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Sticky Header Gaya Traveloka */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+        padding: 13px 20px;
+        transition: box-shadow 0.2s ease;
+      }
+
+      .topbar.is-stuck {
+        box-shadow: 0 6px 20px rgba(7, 112, 205, 0.12);
+      }
+
+      .topbar-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.28rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--tvk-sky);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        display: block;
+        flex-shrink: 0;
+        filter: drop-shadow(0 3px 8px rgba(7, 112, 205, 0.2));
+      }
+
+      .brand-text span {
+        color: var(--tvk-navy);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-nav a {
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.84rem;
+        font-weight: 600;
+        line-height: 1.3;
+        transition: color 0.15s ease;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a.is-active {
+        color: var(--tvk-sky);
+      }
+
+      .topbar-badge {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.3;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .menu-toggle-btn {
+        display: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--tvk-navy);
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .menu-toggle-btn:hover {
+        background: #e6f4ff;
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+
+      /* Hero Banner Traveloka */
+      .blog-hero {
+        background: linear-gradient(135deg, #0770cd 0%, #0194f3 58%, #0c2c57 100%);
+        color: #ffffff;
+        padding: 24px 20px 52px;
+      }
+
+      .blog-hero-inner {
+        max-width: var(--max-width);
+        margin: 0 auto;
+      }
+
+      .blog-wrapper {
+        flex: 1 0 auto;
+        width: 100%;
+        max-width: var(--max-width);
+        margin: -34px auto 0;
+        padding: 0 16px 56px;
+      }
+
+      /* ===== BREADCRUMB ===== */
+      .breadcrumb {
+        font-size: 13px;
+        color: #e0f2fe;
+        margin-bottom: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+      }
+      .breadcrumb a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .breadcrumb a:hover {
+        text-decoration: underline;
+      }
+      .breadcrumb span {
+        color: #bae6fd;
+      }
+      .breadcrumb .current {
+        color: #e0f2fe;
+        font-weight: 500;
+      }
+
+      .blog-hero h1 {
+        font-size: clamp(1.35rem, 2.8vw, 2rem);
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+      }
+
+      /* ===== HEADER CARD ===== */
+      .blog-header {
+        background: var(--bg-white);
+        padding: 22px 26px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        margin-bottom: 22px;
+        box-shadow: 0 10px 26px rgba(12, 44, 87, 0.1);
+      }
+      .header-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .badge-count,
+      .badge-price,
+      .badge-rating {
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-weight: 700;
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        border: 1px solid #bae6fd;
+      }
+      .badge-price {
+        background: var(--orange-light);
+        color: var(--orange);
+        border-color: #fed7aa;
+      }
+      .badge-rating {
+        background: var(--green-light);
+        color: var(--green);
+        border-color: #a7f3d0;
+      }
+
+      .intro-box {
+        background: #f8fafc;
+        padding: 15px 18px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--tvk-sky);
+      }
+      .intro-text {
+        font-size: 15px;
+        line-height: 1.65;
+        margin: 0;
+        color: var(--text);
+      }
+      .intro-text strong {
+        color: var(--tvk-navy);
+      }
+
+      /* ===== SECTION TITLE ===== */
+      .section-title {
+        font-size: 19px;
+        font-weight: 800;
+        color: var(--tvk-navy);
+        margin: 0 0 16px;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-title::before {
+        content: "";
+        width: 4px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--tvk-sky);
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      /* ===== CATALOG SECTION ===== */
+      .catalog-section {
+        background: var(--bg-white);
+        padding: 22px 26px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        margin-bottom: 22px;
+        box-shadow: var(--shadow);
+      }
+
+      .hidden-item {
+        display: none !important;
+      }
+
+      /* ===== VILLA CARD ===== */
+      .villa-card {
+        display: flex;
+        gap: 0;
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 14px;
+        transition: box-shadow 0.25s ease, transform 0.2s ease, border-color 0.2s ease;
+      }
+      .villa-card:hover {
+        box-shadow: var(--shadow-hover);
+        border-color: #93c5fd;
+        transform: translateY(-2px);
+      }
+
+      .card-image-side {
+        width: 268px;
+        min-width: 268px;
+        position: relative;
+        flex-shrink: 0;
+        background: #f1f5f9;
+        border-right: 1px solid var(--border);
+      }
+      .image-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-height: 190px;
+        overflow: hidden;
+        background: #e2e8f0;
+      }
+      .villa-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .no-image {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: var(--text-light);
+      }
+
+      .badge-luxury {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: var(--tvk-navy);
+        color: #ffffff;
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 11px;
+        line-height: 1.3;
+        font-weight: 700;
+        z-index: 2;
+      }
+      .badge-pool {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--tvk-sky);
+        color: #ffffff;
+        padding: 3px 9px;
+        border-radius: 6px;
+        font-size: 11px;
+        line-height: 1.3;
+        font-weight: 700;
+        z-index: 2;
+      }
+
+      .card-content {
+        flex: 1;
+        padding: 15px 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-width: 0;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 4px;
+      }
+      .villa-name {
+        font-size: 17px;
+        font-weight: 800;
+        margin: 0;
+        line-height: 1.3;
+      }
+      .villa-name a {
+        color: var(--text);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+      .villa-name a:hover {
+        color: var(--tvk-sky);
+      }
+
+      .rating-box {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        border: 1px solid #bae6fd;
+        padding: 5px 9px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1.1;
+        flex-shrink: 0;
+      }
+
+      .villa-location {
+        font-size: 12.5px;
+        line-height: 1.4;
+        color: var(--muted);
+        font-weight: 600;
+        margin: 2px 0 8px;
+      }
+
+      .villa-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .tag-green,
+      .tag-blue,
+      .tag-orange,
+      .tag-gray {
+        font-size: 11px;
+        line-height: 1.3;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+      }
+      .tag-green {
+        background: var(--green-light);
+        color: var(--green);
+      }
+      .tag-blue {
+        background: var(--primary-light);
+        color: var(--primary-dark);
+      }
+      .tag-orange {
+        background: var(--orange-light);
+        color: var(--orange);
+      }
+      .tag-gray {
+        background: #f8fafc;
+        color: var(--tvk-navy);
+        border: 1px solid var(--border);
+      }
+
+      .villa-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.5;
+        margin: 0 0 12px;
+      }
+
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid var(--border);
+        padding-top: 11px;
+        margin-top: auto;
+        gap: 12px;
+      }
+      .price-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .price-label {
+        font-size: 11px;
+        line-height: 1.3;
+        color: var(--text-light);
+        font-weight: 600;
+      }
+      .price-value {
+        font-size: 18px;
+        line-height: 1.25;
+        font-weight: 900;
+        color: var(--tvk-orange);
+      }
+      .price-note {
+        font-size: 11px;
+        line-height: 1.3;
+        color: var(--text-light);
+      }
+
+      .btn-detail {
+        background: var(--tvk-sky);
+        color: #ffffff;
+        padding: 9px 18px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 13px;
+        line-height: 1.3;
+        transition: background 0.2s ease;
+        white-space: nowrap;
+      }
+      .btn-detail:hover {
+        background: var(--tvk-blue);
+      }
+
+      .btn-load-more {
+        background: #ffffff;
+        border: 1.5px solid var(--tvk-sky);
+        color: var(--tvk-blue);
+        padding: 10px 28px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        line-height: 1.4;
+        margin: 18px auto 0;
+        display: block;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .btn-load-more:hover {
+        background: var(--tvk-sky);
+        color: #ffffff;
+      }
+
+      /* ===== ARTICLE SECTION ===== */
+      .article-section {
+        background: var(--bg-white);
+        padding: 24px 28px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        margin-bottom: 22px;
+        box-shadow: var(--shadow);
+      }
+      .article-wrapper {
+        max-width: var(--max-width-text);
+        margin: 0 auto;
+      }
+
+      /* ===== TABLE OF CONTENTS ===== */
+      .toc-container {
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 22px;
+        overflow: hidden;
+      }
+      .toc-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 16px;
+        background: var(--primary-light);
+        border-bottom: 1px solid #bae6fd;
+        cursor: pointer;
+      }
+      .toc-icon {
+        font-size: 14px;
+        font-weight: 800;
+        background: var(--tvk-sky);
+        color: #ffffff;
+        padding: 2px 7px;
+        border-radius: 6px;
+        line-height: 1.3;
+      }
+      .toc-title {
+        font-weight: 800;
+        font-size: 14.5px;
+        color: var(--tvk-navy);
+        flex: 1;
+      }
+      .toc-toggle {
+        background: #ffffff;
+        border: 1px solid #bae6fd;
+        border-radius: 6px;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        color: var(--tvk-blue);
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+      }
+      .toc-body {
+        padding: 12px 16px 14px;
+      }
+      .toc-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+      }
+      .toc-list li {
+        margin: 0;
+      }
+      .toc-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text);
+        font-size: 13px;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        transition: all 0.15s ease;
+        cursor: pointer;
+      }
+      .toc-link:hover {
+        background: var(--primary-light);
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+      .toc-number {
+        background: var(--tvk-sky);
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 800;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .toc-text {
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      /* ===== ARTICLE PARAGRAPHS ===== */
+      .paragraph-wrapper {
+        margin-bottom: 0;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: #f8fafc;
+        transition: all 0.35s ease;
+        opacity: 0;
+        transform: translateY(8px);
+        max-height: 0;
+        overflow: hidden;
+        padding: 0 18px;
+      }
+      .paragraph-wrapper.visible {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 2000px;
+        padding: 16px 18px;
+        margin-bottom: 12px;
+        border-color: var(--border);
+      }
+      .paragraph-wrapper.hidden-paragraph {
+        opacity: 0;
+        transform: translateY(8px);
+        max-height: 0;
+        padding: 0 18px;
+        margin-bottom: 0;
+        border-color: transparent;
+      }
+
+      .paragraph-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .paragraph-number {
+        background: var(--primary-light);
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-size: 11px;
+        font-weight: 800;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .paragraph-title {
+        font-size: 16.5px;
+        font-weight: 800;
+        color: var(--tvk-navy);
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .paragraph-body {
+        font-size: 15px;
+        line-height: 1.75;
+        color: #334155;
+      }
+      .paragraph-body p {
+        margin-bottom: 0.75em;
+      }
+      .paragraph-body strong {
+        color: var(--tvk-navy);
+        font-weight: 700;
+      }
+
+      /* ===== READ MORE BUTTON ===== */
+      .read-more-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+      .btn-read-more {
+        background: var(--tvk-sky);
+        color: #ffffff;
+        border: none;
+        padding: 11px 28px;
+        border-radius: 10px;
+        font-size: 14.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: inherit;
+      }
+      .btn-read-more:hover {
+        background: var(--tvk-blue);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(1, 148, 243, 0.25);
+      }
+      .btn-read-more:disabled {
+        opacity: 0.6;
+        cursor: default;
+        transform: none;
+      }
+      .btn-icon {
+        font-size: 16px;
+        transition: transform 0.2s ease;
+      }
+      .btn-read-more:hover .btn-icon {
+        transform: translateY(2px);
+      }
+      .read-progress {
+        font-size: 12.5px;
+        color: var(--text-light);
+        font-weight: 600;
+      }
+
+      .read-complete {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 18px;
+        background: var(--green-light);
+        border: 1px solid #a7f3d0;
+        border-radius: 10px;
+        margin-top: 16px;
+      }
+      .read-complete .complete-icon {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--green);
+      }
+      .read-complete .complete-text {
+        font-size: 14px;
+        color: var(--green);
+        font-weight: 700;
+      }
+
+      /* ===== STATS SECTION ===== */
+      .stats-section {
+        background: var(--bg-white);
+        padding: 20px 24px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        margin-bottom: 22px;
+        box-shadow: var(--shadow);
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .stat-item {
+        text-align: left;
+        padding: 15px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #f8fafc;
+      }
+      .stat-item.blue {
+        border-color: #bae6fd;
+        background: #f0f9ff;
+      }
+      .stat-item.green {
+        border-color: #fed7aa;
+        background: #fff7ed;
+      }
+      .stat-item.amber {
+        border-color: #a7f3d0;
+        background: #ecfdf5;
+      }
+      .stat-item.purple {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+      }
+      .stat-icon {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--tvk-blue);
+        background: #ffffff;
+        border: 1px solid var(--border);
+        padding: 2px 8px;
+        border-radius: 999px;
+        margin-bottom: 6px;
+      }
+      .stat-number {
+        display: block;
+        font-size: 19px;
+        font-weight: 900;
+        color: var(--tvk-navy);
+        margin: 2px 0;
+        line-height: 1.25;
+      }
+      .stat-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      /* ===== TIPS & ACTIVITIES ===== */
+      .tips-activities-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+      .tips-box,
+      .activities-box {
+        background: var(--bg-white);
+        padding: 20px 22px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+      .tips-box h3,
+      .activities-box h3 {
+        font-size: 16.5px;
+        font-weight: 800;
+        margin: 0 0 12px;
+        color: var(--tvk-navy);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tips-box h3::before,
+      .activities-box h3::before {
+        content: "";
+        width: 4px;
+        height: 16px;
+        border-radius: 999px;
+        background: var(--tvk-sky);
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .tips-list,
+      .activities-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .tips-list li,
+      .activities-list li {
+        padding: 9px 12px;
+        border-radius: 8px;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        font-size: 13.5px;
+        line-height: 1.45;
+        color: #334155;
+        font-weight: 500;
+      }
+
+      /* ===== ATTRACTIONS ===== */
+      .attractions-section {
+        background: var(--bg-white);
+        padding: 22px 24px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        margin-bottom: 22px;
+        box-shadow: var(--shadow);
+      }
+      .attractions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .attraction-card {
+        background: #f8fafc;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        transition: border-color 0.15s ease;
+      }
+      .attraction-card:hover {
+        border-color: var(--tvk-sky);
+      }
+      .attraction-card h4 {
+        font-size: 14.5px;
+        font-weight: 800;
+        margin: 0 0 4px;
+        color: var(--tvk-navy);
+      }
+      .attraction-card p {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin: 0 0 8px;
+        line-height: 1.45;
+      }
+      .attraction-card .distance {
+        display: inline-block;
+        font-size: 11px;
+        color: var(--tvk-blue);
+        background: var(--primary-light);
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+
+      /* ===== FAQ SECTION ===== */
+      .faq-section {
+        background: var(--bg-white);
+        padding: 22px 24px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        margin-bottom: 22px;
+        box-shadow: var(--shadow);
+      }
+      .faq-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .faq-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #f8fafc;
+        overflow: hidden;
+      }
+      .faq-question {
+        width: 100%;
+        padding: 13px 16px;
+        background: transparent;
+        border: none;
+        text-align: left;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: color 0.15s ease;
+        font-family: inherit;
+        line-height: 1.4;
+      }
+      .faq-question:hover {
+        color: var(--tvk-blue);
+      }
+      .faq-icon {
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--tvk-blue);
+        transition: transform 0.25s ease;
+        flex-shrink: 0;
+        margin-left: 12px;
+      }
+      .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.35s ease;
+      }
+      .faq-answer.active {
+        max-height: 400px;
+      }
+      .faq-answer p {
+        margin: 0;
+        padding: 12px 16px 14px;
+        border-top: 1px solid var(--border);
+        font-size: 13.5px;
+        color: var(--text-muted);
+        line-height: 1.65;
+        background: #ffffff;
+      }
+
+      /* ===== RELATED LINKS ===== */
+      .related-section {
+        background: var(--bg-white);
+        padding: 22px 24px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+      .related-section h4 {
+        font-size: 16.5px;
+        font-weight: 800;
+        margin: 0 0 14px;
+        color: var(--tvk-navy);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .related-section h4::before {
+        content: "";
+        width: 4px;
+        height: 16px;
+        border-radius: 999px;
+        background: var(--tvk-sky);
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .related-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .related-link {
+        background: #f8fafc;
+        padding: 11px 14px;
+        border-radius: 10px;
+        text-decoration: none;
+        color: var(--tvk-navy);
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        transition: all 0.2s ease;
+        line-height: 1.35;
+      }
+      .related-link:hover {
+        background: var(--primary-light);
+        color: var(--tvk-blue);
+        border-color: var(--tvk-sky);
+        transform: translateY(-1px);
+      }
+
+      /* Footer Gaya Traveloka */
+      .site-footer {
+        background: var(--tvk-navy);
+        color: #e2e8f0;
+        border-top: 1px solid var(--border);
+        padding: 36px 20px 28px;
+        margin-top: auto;
+      }
+
+      .footer-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .footer-logo {
+        width: 28px;
+        height: 28px;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .footer-brand span {
+        color: #7dd3fc;
+      }
+
+      .footer-copy {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #cbd5e1;
+        max-width: 440px;
+        line-height: 1.55;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+      }
+
+      .footer-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .footer-links a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      .footer-bottom {
+        max-width: 1180px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      /* ===== RESPONSIVE ===== */
+      @media (max-width: 860px) {
+        .stats-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .attractions-grid,
+        .related-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 768px) {
+        .blog-hero {
+          padding: 20px 14px 48px;
+        }
+        .blog-wrapper {
+          margin-top: -30px;
+          padding: 0 12px 40px;
+        }
+        .blog-header,
+        .catalog-section,
+        .article-section,
+        .stats-section,
+        .faq-section,
+        .attractions-section,
+        .related-section {
+          padding: 16px 15px;
+          border-radius: 14px;
+        }
+        .tips-activities-section {
+          grid-template-columns: 1fr;
+        }
+        .section-title {
+          font-size: 17px;
+        }
+
+        .villa-card {
+          flex-direction: column;
+        }
+        .card-image-side {
+          width: 100%;
+          min-width: unset;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+        .image-wrapper {
+          padding-top: 56.25%;
+          height: auto;
+          min-height: unset;
+        }
+        .card-content {
+          padding: 14px 16px;
+        }
+        .card-footer {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .price-info {
+          align-items: flex-start;
+        }
+
+        .toc-list {
+          grid-template-columns: 1fr;
+        }
+        .paragraph-title {
+          font-size: 15.5px;
+        }
+        .paragraph-body {
+          font-size: 14px;
+        }
+        .intro-text {
+          font-size: 14px;
+        }
+        .toc-link {
+          font-size: 12.5px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 11px 16px;
+        }
+
+        .brand {
+          font-size: 1.15rem;
+          gap: 7px;
+        }
+
+        .brand-logo {
+          width: 30px;
+          height: 30px;
+        }
+
+        .topbar-badge {
+          display: none;
+        }
+
+        .menu-toggle-btn {
+          display: inline-flex;
+        }
+
+        .topbar-right {
+          position: static;
+          gap: 0;
+        }
+
+        .topbar-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+          box-shadow: 0 12px 24px rgba(12, 44, 87, 0.12);
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 6px 12px 10px;
+        }
+
+        .topbar-nav.is-open {
+          display: flex;
+        }
+
+        .topbar-nav a {
+          padding: 11px 12px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+        }
+
+        .topbar-nav a:hover {
+          background: #f0f9ff;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .attractions-grid,
+        .related-grid {
+          grid-template-columns: 1fr;
+        }
+        .header-meta {
+          gap: 6px;
+        }
+        .badge-count,
+        .badge-price,
+        .badge-rating {
+          font-size: 11px;
+          padding: 4px 10px;
+        }
+        .villa-name {
+          font-size: 15.5px;
+        }
+        .price-value {
+          font-size: 16px;
+        }
+        .paragraph-wrapper.visible {
+          padding: 14px 14px;
+        }
+        .paragraph-number {
+          width: 24px;
+          height: 24px;
+          font-size: 10.5px;
+        }
+        .toc-body {
+          padding: 10px 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="topbar" class="topbar">
+      <div class="topbar-inner">
+        <a href="/" class="brand" aria-label="villa.web.id Beranda">
+          <svg
+            class="brand-logo"
+            viewBox="0 0 64 64"
+            width="34"
+            height="34"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="vw-blog-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0194f3" />
+                <stop offset="100%" stop-color="#0c2c57" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#vw-blog-bg)" />
+            <path
+              d="M14 33 L32 16 L50 33"
+              fill="none"
+              stroke="#ff5e1f"
+              stroke-width="5.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 31 V44 H43 V31"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="4.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M16 51 Q24 47 32 51 T48 51"
+              fill="none"
+              stroke="#7dd3fc"
+              stroke-width="3.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="brand-text">villa<span>.web.id</span></span>
+        </a>
+        <div class="topbar-right">
+          <nav id="topbar-nav" class="topbar-nav" aria-label="Navigasi utama">
+            <a href="/">Semua Villa</a>
+            <a href="/cara-pesan">Cara Pesan</a>
+            <a href="/bantuan">Bantuan</a>
+            <a href="/kontak">Kontak</a>
+            <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+          </nav>
+          <span class="topbar-badge">Sewa Villa Puncak, Cipanas &amp; Kota Bunga</span>
+          <button
+            type="button"
+            id="menu-toggle-btn"
+            class="menu-toggle-btn"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="topbar-nav"
+          >
+            &#9776;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="blog-hero">
+      <div class="blog-hero-inner">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Home</a> <span>/</span> <a href="/blog">Blog Villa</a> <span>/</span> <span class="current">{title}</span>
+        </nav>
+        <h1>{title}</h1>
+      </div>
+    </section>
+
+    <main class="blog-wrapper">
+      <!-- HEADER -->
+      <header class="blog-header">
+        <div class="header-meta">
+          <span class="badge-count">{villaCount} properti</span>
+          <span class="badge-price">Mulai Rp {formatIDR(minPrice)}</span>
+          <span class="badge-rating">Rating {avgRating}/5</span>
+        </div>
+        <div class="intro-box">
+          <p class="intro-text">
+            <strong>Rekomendasi terbaik untuk Anda!</strong> Temukan {villaCount} pilihan villa di {location} dengan harga mulai Rp {formatIDR(minPrice)} per malam.
+            Rating rata-rata {avgRating}/5 dari tamu sebelumnya. Booking sekarang untuk pengalaman menginap yang tak terlupakan!
+          </p>
+        </div>
+      </header>
+
+      <!-- SECTION 1: KATALOG VILLA -->
+      <section class="catalog-section">
+        <h2 class="section-title">Daftar Villa Pilihan</h2>
+        <div class="results-list">
+          {selectedVillas.map((v, index) => {
+            const fullVillaSlug = `${v.id}-${createVillaSlug(v.name)}`;
+            const imageAsset = getLocalAsset(v.main_photo_url);
+            const ratingScore = parseFloat(v.rating.toString()) || 8.8;
+
+            return (
+              <article class={`villa-card ${index >= 6 ? 'hidden-item' : ''}`}>
+                <div class="card-image-side">
+                  <div class="image-wrapper">
+                    {imageAsset ? (
+                      <Image
+                        src={imageAsset()}
+                        alt={v.name}
+                        width={400}
+                        height={300}
+                        quality="mid"
+                        format="webp"
+                        loading={index < 3 ? "eager" : "lazy"}
+                        class="villa-image"
+                      />
+                    ) : (
+                      <div class="no-image">Foto Tidak Tersedia</div>
+                    )}
+                  </div>
+                  {v.mewah && <span class="badge-luxury">Premium</span>}
+                  {v.private_pool && <span class="badge-pool">Private Pool</span>}
+                </div>
+
+                <div class="card-content">
+                  <div class="card-header">
+                    <h3 class="villa-name"><a href={`/villa/${fullVillaSlug}`}>{v.name}</a></h3>
+                    <div class="rating-box">
+                      <span class="rating-score">{ratingScore.toFixed(1)}</span>
+                    </div>
+                  </div>
+                  <p class="villa-location">{v.location}, {location}</p>
+                  <div class="villa-tags">
+                    <span class="tag-green">Sewa 1 Rumah</span>
+                    {v.private_pool && <span class="tag-blue">Private Pool</span>}
+                    {v.view_gunung && <span class="tag-orange">View Gunung</span>}
+                    <span class="tag-gray">{v.jumlah_kamar} Kamar</span>
+                    <span class="tag-gray">{v.kapasitas_maks} Org</span>
+                  </div>
+                  <p class="villa-desc">{v.deskripsi_singkat.substring(0, 140)}...</p>
+                  <div class="card-footer">
+                    <div class="price-info">
+                      <span class="price-label">Mulai Dari</span>
+                      <span class="price-value">Rp {formatIDR(v.price_per_night)}</span>
+                      <span class="price-note">/ malam nett</span>
+                    </div>
+                    <a href={`/villa/${fullVillaSlug}`} class="btn-detail">Lihat Detail &rarr;</a>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        {villaCount > 6 && (
+          <button id="load-more-btn" type="button" class="btn-load-more">Tampilkan Lebih Banyak &darr;</button>
+        )}
+      </section>
+
+      <!-- SECTION 2: ARTIKEL DENGAN TOC & BACA SELENGKAPNYA -->
+      <section class="article-section">
+        <div class="article-wrapper">
+          <h2 class="section-title">Panduan Lengkap {title}</h2>
+
+          <!-- TABLE OF CONTENTS -->
+          <div class="toc-container">
+            <div class="toc-header">
+              <span class="toc-icon">TOC</span>
+              <span class="toc-title">Daftar Isi</span>
+              <button type="button" class="toc-toggle" id="toc-toggle" aria-label="Toggle Table of Contents">&minus;</button>
+            </div>
+            <nav class="toc-body" id="toc-body">
+              <ul class="toc-list">
+                {articleParagraphs.map((p, index) => (
+                  <li class="toc-item">
+                    <a href={`#paragraph-${p.id}`} class="toc-link" data-target={`paragraph-${p.id}`}>
+                      <span class="toc-number">{String(index + 1).padStart(2, '0')}</span>
+                      <span class="toc-text">{p.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
+
+          <!-- ARTICLE PARAGRAPHS WITH READ MORE -->
+          <div class="article-content" id="article-content">
+            {articleParagraphs.map((p, index) => (
+              <div
+                id={`paragraph-${p.id}`}
+                class={`paragraph-wrapper ${index === 0 ? 'visible' : 'hidden-paragraph'}`}
+                data-index={index}
+              >
+                <div class="paragraph-header">
+                  <span class="paragraph-number">{String(index + 1).padStart(2, '0')}</span>
+                  <h3 class="paragraph-title">{p.title}</h3>
+                </div>
+                <div class="paragraph-body" set:html={p.content} />
+              </div>
+            ))}
+          </div>
+
+          <!-- READ MORE BUTTON -->
+          <div class="read-more-container" id="read-more-container">
+            <button type="button" class="btn-read-more" id="btn-read-more">
+              <span class="btn-text">Baca Selengkapnya</span>
+              <span class="btn-icon">&darr;</span>
+            </button>
+            <span class="read-progress" id="read-progress">0 / {articleParagraphs.length} paragraf</span>
+          </div>
+
+          <!-- ALL READ COMPLETE MESSAGE -->
+          <div class="read-complete" id="read-complete">
+            <span class="complete-icon">&#10003;</span>
+            <span class="complete-text">Seluruh artikel telah dibaca! Selamat menikmati informasi lengkapnya.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: STATS RINGKASAN -->
+      <section class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-item blue">
+            <span class="stat-icon">Properti</span>
+            <span class="stat-number">{villaCount}</span>
+            <span class="stat-label">Total Properti</span>
+          </div>
+          <div class="stat-item green">
+            <span class="stat-icon">Tarif</span>
+            <span class="stat-number">Rp {formatIDR(minPrice)}</span>
+            <span class="stat-label">Harga Termurah</span>
+          </div>
+          <div class="stat-item amber">
+            <span class="stat-icon">Ulasan</span>
+            <span class="stat-number">{avgRating}/5</span>
+            <span class="stat-label">Rating Rata-rata</span>
+          </div>
+          <div class="stat-item purple">
+            <span class="stat-icon">Kapasitas</span>
+            <span class="stat-number">{maxCapStat}</span>
+            <span class="stat-label">Kapasitas Maks (Org)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: TIPS & AKTIVITAS -->
+      <section class="tips-activities-section">
+        <div class="tips-box">
+          <h3>Tips Memilih Villa di {location}</h3>
+          <ul class="tips-list">
+            <li>Pesan jauh-jauh hari untuk harga terbaik, terutama akhir pekan</li>
+            <li>Perhatikan jumlah kamar &amp; kapasitas tamu sesuai rombongan</li>
+            <li>Cek ulasan tamu sebelumnya untuk gambaran nyata</li>
+            <li>Manfaatkan promo diskon untuk pemesanan 3+ malam</li>
+            <li>Konfirmasi fasilitas yang tersedia (AC, WiFi, dapur, parkir)</li>
+          </ul>
+        </div>
+        <div class="activities-box">
+          <h3>Aktivitas Menarik di {location}</h3>
+          <ul class="activities-list">
+            <li>Menikmati sunrise &amp; sunset dengan view gunung</li>
+            <li>Berenang di kolam renang pribadi villa</li>
+            <li>Barbekyu bersama keluarga di halaman</li>
+            <li>Kuliner khas daerah di restoran sekitar</li>
+            <li>Spot foto menarik di berbagai destinasi sekitar</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SECTION 5: TEMPAT WISATA TERDEKAT -->
+      <section class="attractions-section">
+        <h3 class="section-title">Tempat Wisata Terdekat dari {location}</h3>
+        <div class="attractions-grid">
+          <div class="attraction-card">
+            <h4>Kebun Teh</h4>
+            <p>Pemandangan kebun teh hijau yang luas dan udara segar</p>
+            <span class="distance">&plusmn; 15 menit</span>
+          </div>
+          <div class="attraction-card">
+            <h4>Air Terjun</h4>
+            <p>Air terjun indah dengan kolam alami untuk berenang</p>
+            <span class="distance">&plusmn; 25 menit</span>
+          </div>
+          <div class="attraction-card">
+            <h4>Taman Wisata</h4>
+            <p>Taman rekreasi keluarga dengan berbagai wahana</p>
+            <span class="distance">&plusmn; 20 menit</span>
+          </div>
+          <div class="attraction-card">
+            <h4>Restoran Khas</h4>
+            <p>Kuliner khas daerah dengan pemandangan alam</p>
+            <span class="distance">&plusmn; 10 menit</span>
+          </div>
+          <div class="attraction-card">
+            <h4>Pusat Oleh-oleh</h4>
+            <p>Berbagai oleh-oleh khas untuk buah tangan</p>
+            <span class="distance">&plusmn; 12 menit</span>
+          </div>
+          <div class="attraction-card">
+            <h4>Area Camping</h4>
+            <p>Camping nyaman dengan pemandangan memukau</p>
+            <span class="distance">&plusmn; 30 menit</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: FAQ ACCORDION -->
+      <section class="faq-section">
+        <h3 class="section-title">Pertanyaan Umum tentang Villa di {location}</h3>
+        <div class="faq-container">
+          {faqData.map((faq) => (
+            <div class="faq-item">
+              <button type="button" class="faq-question">
+                <span>{faq.question}</span>
+                <span class="faq-icon">+</span>
+              </button>
+              <div class="faq-answer">
+                <p>{faq.answer}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- SECTION 7: RELATED LINKS -->
+      <section class="related-section">
+        <h4>Artikel Villa Lainnya</h4>
+        <div class="related-grid">
+          {relatedLinks.map(link => (
+            <a href={link.url} class="related-link">{link.name}</a>
+          ))}
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <svg
+              class="footer-logo"
+              viewBox="0 0 64 64"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#0194f3" />
+              <path
+                d="M14 33 L32 16 L50 33"
+                fill="none"
+                stroke="#ff5e1f"
+                stroke-width="5.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 31 V44 H43 V31"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 51 Q24 47 32 51 T48 51"
+                fill="none"
+                stroke="#e0f2fe"
+                stroke-width="3.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>villa<span>.web.id</span></span>
+          </div>
+          <p class="footer-copy">
+            Layanan sewa villa di kawasan Puncak, Cipanas, Cisarua, dan Kota Bunga dengan proses booking jelas dan transparan.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Tautan informasi">
+          <a href="/cara-pesan">Cara Pesan</a>
+          <a href="/bantuan">Bantuan</a>
+          <a href="/kontak">Kontak</a>
+          <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>villa.web.id</span>
+        <span>Puncak &bull; Cipanas &bull; Cisarua &bull; Kota Bunga</span>
+      </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script is:inline>
+      function setup() {
+        const menuToggleBtn = document.getElementById("menu-toggle-btn");
+        const topbarNav = document.getElementById("topbar-nav");
+        const topbarEl = document.getElementById("topbar");
+
+        function setMobileMenuOpen(isOpen) {
+          if (!topbarNav || !menuToggleBtn) return;
+          topbarNav.classList.toggle("is-open", isOpen);
+          menuToggleBtn.setAttribute("aria-expanded", String(isOpen));
+          menuToggleBtn.innerHTML = isOpen ? "&times;" : "&#9776;";
+          menuToggleBtn.setAttribute(
+            "aria-label",
+            isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"
+          );
+        }
+
+        menuToggleBtn?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isOpen = topbarNav?.classList.contains("is-open") || false;
+          setMobileMenuOpen(!isOpen);
+        });
+
+        topbarNav?.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", () => setMobileMenuOpen(false));
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!topbarNav?.classList.contains("is-open")) return;
+          const target = e.target;
+          if (target instanceof Node && !topbarNav.contains(target) && target !== menuToggleBtn) {
+            setMobileMenuOpen(false);
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") setMobileMenuOpen(false);
+        });
+
+        window.addEventListener("resize", () => {
+          if (window.innerWidth > 640) setMobileMenuOpen(false);
+        });
+
+        function handleStickyHeader() {
+          if (!topbarEl) return;
+          topbarEl.classList.toggle("is-stuck", window.scrollY > 4);
+        }
+
+        window.addEventListener("scroll", handleStickyHeader, { passive: true });
+        handleStickyHeader();
+
+        // --- LOAD MORE VILLA ---
+        const btnLoadMore = document.getElementById('load-more-btn');
+        btnLoadMore?.addEventListener('click', () => {
+          const hidden = document.querySelectorAll('.hidden-item');
+          Array.from(hidden).slice(0, 6).forEach(i => i.classList.remove('hidden-item'));
+          if (document.querySelectorAll('.hidden-item').length === 0) {
+            if (btnLoadMore instanceof HTMLElement) btnLoadMore.style.display = 'none';
+          }
+        });
+
+        // --- READ MORE PARAGRAPH PER PARAGRAPH ---
+        const paragraphs = document.querySelectorAll('.paragraph-wrapper');
+        const btnReadMore = document.getElementById('btn-read-more');
+        const readProgress = document.getElementById('read-progress');
+        const readComplete = document.getElementById('read-complete');
+        const readMoreContainer = document.getElementById('read-more-container');
+
+        function updateProgress() {
+          const visible = document.querySelectorAll('.paragraph-wrapper.visible').length;
+          const total = paragraphs.length;
+          if (readProgress) {
+            readProgress.textContent = `${visible} / ${total} paragraf`;
+          }
+          if (visible === total && total > 0) {
+            if (readMoreContainer instanceof HTMLElement) readMoreContainer.style.display = 'none';
+            if (readComplete instanceof HTMLElement) readComplete.style.display = 'flex';
+            document.querySelector('.article-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+
+        if (paragraphs.length > 0) {
+          paragraphs[0].classList.add('visible');
+          paragraphs[0].classList.remove('hidden-paragraph');
+          updateProgress();
+        }
+
+        btnReadMore?.addEventListener('click', () => {
+          const hidden = document.querySelectorAll('.paragraph-wrapper.hidden-paragraph');
+          if (hidden.length > 0) {
+            const next = hidden[0];
+            next.classList.remove('hidden-paragraph');
+            next.classList.add('visible');
+            updateProgress();
+
+            next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            if (next instanceof HTMLElement) {
+              next.style.transition = 'background 0.5s ease';
+              next.style.background = '#f0f7ff';
+              setTimeout(() => {
+                next.style.background = 'transparent';
+              }, 1000);
+            }
+          }
+
+          if (document.querySelectorAll('.paragraph-wrapper.hidden-paragraph').length === 0) {
+            if (btnReadMore instanceof HTMLButtonElement) {
+              btnReadMore.innerHTML = '<span class="btn-text">&#10003; Semua Paragraf Terbaca</span>';
+              btnReadMore.disabled = true;
+              btnReadMore.style.opacity = '0.6';
+              btnReadMore.style.cursor = 'default';
+            }
+            if (readMoreContainer instanceof HTMLElement) {
+              setTimeout(() => {
+                readMoreContainer.style.display = 'none';
+                if (readComplete instanceof HTMLElement) readComplete.style.display = 'flex';
+              }, 1500);
+            }
+          }
+        });
+
+        // --- TOC TOGGLE ---
+        const tocToggle = document.getElementById('toc-toggle');
+        const tocBody = document.getElementById('toc-body');
+        let tocOpen = true;
+
+        tocToggle?.addEventListener('click', () => {
+          tocOpen = !tocOpen;
+          if (tocBody instanceof HTMLElement) {
+            tocBody.style.display = tocOpen ? 'block' : 'none';
+          }
+          if (tocToggle) {
+            tocToggle.textContent = tocOpen ? '\u2212' : '+';
+          }
+        });
+
+        // --- TOC SMOOTH SCROLL ---
+        document.querySelectorAll('.toc-link').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('data-target');
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (target) {
+              if (target.classList.contains('hidden-paragraph')) {
+                target.classList.remove('hidden-paragraph');
+                target.classList.add('visible');
+                updateProgress();
+              }
+              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              if (target instanceof HTMLElement) {
+                target.style.transition = 'background 0.5s ease';
+                target.style.background = '#f0f7ff';
+                setTimeout(() => {
+                  target.style.background = 'transparent';
+                }, 1500);
+              }
+            }
+          });
+        });
+
+        // --- FAQ ACCORDION ---
+        const faqItems = document.querySelectorAll('.faq-item');
+        faqItems.forEach((item) => {
+          const question = item.querySelector('.faq-question');
+          const answer = item.querySelector('.faq-answer');
+          const icon = item.querySelector('.faq-icon');
+
+          question?.addEventListener('click', () => {
+            faqItems.forEach((other) => {
+              if (other !== item) {
+                const otherAnswer = other.querySelector('.faq-answer');
+                const otherIcon = other.querySelector('.faq-icon');
+                if (otherAnswer) otherAnswer.classList.remove('active');
+                if (otherIcon) otherIcon.textContent = '+';
+              }
+            });
+
+            answer?.classList.toggle('active');
+            if (icon) {
+              icon.textContent = answer?.classList.contains('active') ? '\u2212' : '+';
+            }
+          });
+        });
+      }
+
+      setup();
+      document.addEventListener('astro:after-swap', setup);
+    </script>
+  </body>
+</html>

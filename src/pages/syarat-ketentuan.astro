@@ -1,0 +1,848 @@
+---
+export const prerender = true;
+
+const lastUpdated = "06 Januari 2026";
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#0770cd"/><path d="M14 33 L32 16 L50 33" fill="none" stroke="#ff5e1f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 31 V44 H43 V31" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 51 Q24 47 32 51 T48 51" fill="none" stroke="#7dd3fc" stroke-width="3.8" stroke-linecap="round"/></svg>`;
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Syarat &amp; Ketentuan | villa.web.id - Aturan Sewa Villa Puncak</title>
+    <meta
+      name="description"
+      content="Syarat dan ketentuan reservasi, pembayaran DP, pembatalan, reschedule, dan tata tertib sewa villa di kawasan Puncak melalui villa.web.id."
+    />
+    <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+    <style>
+      :root {
+        --tvk-sky: #0194f3;
+        --tvk-blue: #0770cd;
+        --tvk-navy: #0c2c57;
+        --tvk-orange: #ff5e1f;
+        --tvk-orange-dark: #e64d12;
+        --bg: #f4f7fa;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Sticky Header Gaya Traveloka */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+        padding: 13px 20px;
+        transition: box-shadow 0.2s ease;
+      }
+
+      .topbar.is-stuck {
+        box-shadow: 0 6px 20px rgba(7, 112, 205, 0.12);
+      }
+
+      .topbar-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.25rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--tvk-sky);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        display: block;
+        flex-shrink: 0;
+        filter: drop-shadow(0 3px 8px rgba(7, 112, 205, 0.2));
+      }
+
+      .brand-text span {
+        color: var(--tvk-navy);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-nav a {
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.84rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a.is-active {
+        color: var(--tvk-sky);
+      }
+
+      .topbar-badge {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .menu-toggle-btn {
+        display: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--tvk-navy);
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .menu-toggle-btn:hover {
+        background: #e6f4ff;
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+
+      h1,
+      h2,
+      h3 {
+        letter-spacing: -0.02em;
+      }
+
+      strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .hero-tvk {
+        background: linear-gradient(135deg, #0770cd 0%, #0194f3 60%, #0c2c57 100%);
+        color: #ffffff;
+        padding: 42px 20px 68px;
+        text-align: center;
+      }
+
+      .hero-inner {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .hero-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: #e0f2fe;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+      }
+
+      .hero-title {
+        margin: 0 0 8px;
+        font-size: clamp(1.55rem, 3.6vw, 2.25rem);
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .hero-meta {
+        margin: 0;
+        color: #bae6fd;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .main-tvk {
+        flex: 1 0 auto;
+        width: 100%;
+        max-width: 900px;
+        margin: -34px auto 0;
+        padding: 0 20px 72px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .terms-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px 24px;
+        box-shadow: 0 8px 22px rgba(12, 44, 87, 0.06);
+        font-size: 0.92rem;
+        line-height: 1.65;
+        color: #334155;
+      }
+
+      .intro-quote {
+        margin: 0;
+        background: #f0f9ff;
+        border-left: 4px solid var(--tvk-sky);
+        border-radius: 0 10px 10px 0;
+        padding: 14px 16px;
+        color: var(--tvk-navy);
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+
+      .step-heading {
+        margin: 0 0 14px;
+        font-size: 1.06rem;
+        font-weight: 800;
+        color: var(--tvk-navy);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .step-num {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        font-size: 0.82rem;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+
+      .terms-list {
+        margin: 0;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .policy-intro {
+        margin: 0 0 14px;
+      }
+
+      .two-policy-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .box-cancel {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .box-cancel-title {
+        margin: 0 0 4px;
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: #b91c1c;
+      }
+
+      .box-cancel-desc {
+        margin: 0;
+        font-size: 0.82rem;
+        color: #7f1d1d;
+        line-height: 1.5;
+      }
+
+      .box-reschedule {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+
+      .box-reschedule-title {
+        margin: 0 0 4px;
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: var(--tvk-blue);
+      }
+
+      .box-reschedule-desc {
+        margin: 0;
+        font-size: 0.82rem;
+        color: #1e3a8a;
+        line-height: 1.5;
+      }
+
+      .card-navy {
+        background: linear-gradient(135deg, #0c2c57 0%, #0770cd 100%);
+        color: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 12px 26px rgba(12, 44, 87, 0.14);
+        font-size: 0.92rem;
+        line-height: 1.65;
+      }
+
+      .card-navy .step-heading {
+        color: #ffffff;
+      }
+
+      .card-navy .step-num {
+        background: rgba(255, 255, 255, 0.18);
+        color: #ffffff;
+      }
+
+      .card-navy p {
+        margin: 0 0 12px;
+        color: #f0f9ff;
+      }
+
+      .card-navy p:last-child {
+        margin-bottom: 0;
+      }
+
+      .card-navy strong {
+        color: #ffffff;
+      }
+
+      .quote-callout {
+        border-left: 3px solid #fde047;
+        padding-left: 14px;
+        color: #e0f2fe;
+        font-size: 0.88rem;
+        font-style: italic;
+      }
+
+      .agree-footer {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px 20px;
+        text-align: center;
+        box-shadow: 0 6px 18px rgba(12, 44, 87, 0.05);
+      }
+
+      .agree-note {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .btn-agree-tvk {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #16a34a;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        transition: background-color 0.15s ease;
+      }
+
+      .btn-agree-tvk:hover {
+        background: #15803d;
+      }
+
+      /* Footer Gaya Traveloka */
+      .site-footer {
+        background: var(--tvk-navy);
+        color: #e2e8f0;
+        border-top: 1px solid var(--border);
+        padding: 36px 20px 28px;
+        margin-top: auto;
+      }
+
+      .footer-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .footer-logo {
+        width: 28px;
+        height: 28px;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .footer-brand span {
+        color: #7dd3fc;
+      }
+
+      .footer-copy {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #cbd5e1;
+        max-width: 440px;
+        line-height: 1.55;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+      }
+
+      .footer-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .footer-links a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      .footer-bottom {
+        max-width: 1180px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 11px 16px;
+        }
+
+        .brand {
+          font-size: 1.12rem;
+          gap: 7px;
+        }
+
+        .brand-logo {
+          width: 30px;
+          height: 30px;
+        }
+
+        .topbar-badge {
+          display: none;
+        }
+
+        .menu-toggle-btn {
+          display: inline-flex;
+        }
+
+        .topbar-right {
+          position: static;
+          gap: 0;
+        }
+
+        .topbar-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+          box-shadow: 0 12px 24px rgba(12, 44, 87, 0.12);
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 6px 12px 10px;
+        }
+
+        .topbar-nav.is-open {
+          display: flex;
+        }
+
+        .topbar-nav a {
+          padding: 11px 12px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+        }
+
+        .topbar-nav a:hover {
+          background: #f0f9ff;
+        }
+
+        .main-tvk {
+          padding: 0 12px 56px;
+        }
+
+        .terms-card,
+        .card-navy {
+          padding: 18px 16px;
+        }
+
+        .two-policy-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .btn-agree-tvk {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="topbar" class="topbar">
+      <div class="topbar-inner">
+        <a href="/" class="brand" aria-label="villa.web.id Beranda">
+          <svg
+            class="brand-logo"
+            viewBox="0 0 64 64"
+            width="34"
+            height="34"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="vw-badge-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0194f3" />
+                <stop offset="100%" stop-color="#0c2c57" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#vw-badge-bg)" />
+            <path
+              d="M14 33 L32 16 L50 33"
+              fill="none"
+              stroke="#ff5e1f"
+              stroke-width="5.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 31 V44 H43 V31"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="4.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M16 51 Q24 47 32 51 T48 51"
+              fill="none"
+              stroke="#7dd3fc"
+              stroke-width="3.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="brand-text">villa<span>.web.id</span></span>
+        </a>
+        <div class="topbar-right">
+          <nav id="topbar-nav" class="topbar-nav" aria-label="Navigasi utama">
+            <a href="/cara-pesan">Cara Pesan</a>
+            <a href="/bantuan">Bantuan</a>
+            <a href="/kontak">Kontak</a>
+            <a href="/syarat-ketentuan" class="is-active">Syarat &amp; Ketentuan</a>
+          </nav>
+          <span class="topbar-badge">Sewa Villa Puncak, Cipanas &amp; Kota Bunga</span>
+          <button
+            type="button"
+            id="menu-toggle-btn"
+            class="menu-toggle-btn"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="topbar-nav"
+          >
+            &#9776;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero-tvk">
+      <div class="hero-inner">
+        <span class="hero-badge">Aturan &amp; Kebijakan</span>
+        <h1 class="hero-title">Syarat &amp; Ketentuan</h1>
+        <p class="hero-meta">villa.web.id &bull; Update Terakhir: {lastUpdated}</p>
+      </div>
+    </section>
+
+    <main class="main-tvk">
+      <section class="terms-card">
+        <p class="intro-quote">
+          Dengan melakukan reservasi di villa.web.id, Anda dianggap telah membaca, memahami, dan menyetujui seluruh aturan yang berlaku di bawah ini. Aturan ini dibuat demi kenyamanan bersama antara penyewa, pemilik villa, dan lingkungan sekitar.
+        </p>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">01</span>
+          Proses Reservasi &amp; Pembayaran
+        </h2>
+        <ul class="terms-list">
+          <li>
+            Pemesanan dianggap sah (confirmed) hanya setelah penyewa melakukan <strong>Down Payment (DP) sebesar 50%</strong> dari total harga sewa.
+          </li>
+          <li>
+            Pelunasan sisa biaya sewa wajib dilakukan pada saat <strong>Check-in</strong> di lokasi villa.
+          </li>
+          <li>
+            Kami hanya menerima pembayaran melalui transfer bank ke rekening resmi yang diinformasikan oleh admin kami.
+          </li>
+        </ul>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">02</span>
+          Pembatalan &amp; Perubahan Jadwal
+        </h2>
+        <p class="policy-intro">Kami memahami bahwa rencana bisa berubah, namun kebijakan berikut berlaku tetap:</p>
+        <div class="two-policy-grid">
+          <div class="box-cancel">
+            <h3 class="box-cancel-title">Pembatalan (Cancel)</h3>
+            <p class="box-cancel-desc">
+              DP yang sudah masuk tidak dapat dikembalikan (non-refundable) dengan alasan apapun.
+            </p>
+          </div>
+          <div class="box-reschedule">
+            <h3 class="box-reschedule-title">Reschedule</h3>
+            <p class="box-reschedule-desc">
+              Perubahan tanggal diperbolehkan maksimal 1 kali, paling lambat 10 hari sebelum hari H (tergantung ketersediaan).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">03</span>
+          Tata Tertib &amp; Penggunaan Villa
+        </h2>
+        <ul class="terms-list">
+          <li><strong>Check-in:</strong> Mulai pukul 14.00 WIB. | <strong>Check-out:</strong> Maksimal pukul 12.00 WIB.</li>
+          <li>
+            Jumlah tamu dilarang melebihi <strong>kapasitas maksimal</strong> yang telah disepakati saat booking.
+          </li>
+          <li>
+            Dilarang membawa hewan peliharaan (pets) kecuali villa tersebut berlabel <em>pet-friendly</em>.
+          </li>
+          <li>
+            Dilarang melakukan aktivitas ilegal, perjudian, atau membawa obat-obatan terlarang ke dalam area villa.
+          </li>
+          <li>
+            Tamu wajib menjaga ketenangan dan tidak mengganggu lingkungan sekitar, terutama setelah pukul 22.00 WIB.
+          </li>
+        </ul>
+      </section>
+
+      <section class="card-navy">
+        <h2 class="step-heading">
+          <span class="step-num">04</span>
+          Tanggung Jawab &amp; Kerusakan
+        </h2>
+        <p>
+          Penyewa bertanggung jawab penuh atas segala kerusakan fasilitas atau kehilangan inventaris villa yang disebabkan oleh kelalaian tamu.
+        </p>
+        <p class="quote-callout">
+          &ldquo;Pemilik villa berhak meminta ganti rugi atau menahan deposit (jika ada) apabila ditemukan kerusakan pada furniture, alat elektronik, atau fasilitas kolam renang setelah masa sewa berakhir.&rdquo;
+        </p>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">05</span>
+          Keadaan Kahar (Force Majeure)
+        </h2>
+        <p style="margin: 0;">
+          Kami tidak bertanggung jawab atas kegagalan check-in yang disebabkan oleh bencana alam, pemadaman listrik masal dari PLN, gangguan akses jalan (longsor/penutupan jalan oleh kepolisian), atau kebijakan mendadak dari pemerintah setempat. Namun, kami akan berusaha membantu proses <em>reschedule</em> pada kondisi tersebut.
+        </p>
+      </section>
+
+      <section class="agree-footer">
+        <p class="agree-note">
+          Terima kasih atas kerja sama Anda dalam menjaga standar kenyamanan liburan di Puncak.
+        </p>
+        <a
+          href="https://wa.me/6285938573419"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn-agree-tvk"
+        >
+          Saya Setuju, Hubungi Admin
+        </a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <svg
+              class="footer-logo"
+              viewBox="0 0 64 64"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#0194f3" />
+              <path
+                d="M14 33 L32 16 L50 33"
+                fill="none"
+                stroke="#ff5e1f"
+                stroke-width="5.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 31 V44 H43 V31"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 51 Q24 47 32 51 T48 51"
+                fill="none"
+                stroke="#e0f2fe"
+                stroke-width="3.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>villa<span>.web.id</span></span>
+          </div>
+          <p class="footer-copy">
+            Layanan sewa villa di kawasan Puncak, Cipanas, Cisarua, dan Kota Bunga dengan proses booking jelas dan transparan.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Tautan informasi">
+          <a href="/cara-pesan">Cara Pesan</a>
+          <a href="/bantuan">Bantuan</a>
+          <a href="/kontak">Kontak</a>
+          <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>villa.web.id</span>
+        <span>Puncak • Cipanas • Cisarua • Kota Bunga</span>
+      </div>
+    </footer>
+
+    <script is:inline>
+      const menuToggleBtn = document.getElementById("menu-toggle-btn");
+      const topbarNav = document.getElementById("topbar-nav");
+      const topbarEl = document.getElementById("topbar");
+
+      function setMobileMenuOpen(isOpen) {
+        if (!topbarNav || !menuToggleBtn) return;
+        topbarNav.classList.toggle("is-open", isOpen);
+        menuToggleBtn.setAttribute("aria-expanded", String(isOpen));
+        menuToggleBtn.innerHTML = isOpen ? "&times;" : "&#9776;";
+        menuToggleBtn.setAttribute(
+          "aria-label",
+          isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"
+        );
+      }
+
+      menuToggleBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = topbarNav?.classList.contains("is-open") || false;
+        setMobileMenuOpen(!isOpen);
+      });
+
+      topbarNav?.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => setMobileMenuOpen(false));
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!topbarNav?.classList.contains("is-open")) return;
+        const target = e.target;
+        if (target instanceof Node && !topbarNav.contains(target) && target !== menuToggleBtn) {
+          setMobileMenuOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") setMobileMenuOpen(false);
+      });
+
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 640) setMobileMenuOpen(false);
+      });
+
+      function handleStickyHeader() {
+        if (!topbarEl) return;
+        topbarEl.classList.toggle("is-stuck", window.scrollY > 4);
+      }
+
+      window.addEventListener("scroll", handleStickyHeader, { passive: true });
+      handleStickyHeader();
+    </script>
+  </body>
+</html>

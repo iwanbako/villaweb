@@ -1,0 +1,739 @@
+---
+export const prerender = true;
+
+const lastUpdated = "06 Januari 2026";
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#0770cd"/><path d="M14 33 L32 16 L50 33" fill="none" stroke="#ff5e1f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 31 V44 H43 V31" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 51 Q24 47 32 51 T48 51" fill="none" stroke="#7dd3fc" stroke-width="3.8" stroke-linecap="round"/></svg>`;
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kebijakan Privasi | sewavillapuncak.id - Portal Sewa Villa Puncak</title>
+    <meta
+      name="description"
+      content="Kebijakan privasi pengumpulan, penggunaan, keamanan data, dan layanan pihak ketiga di sewavillapuncak.id."
+    />
+    <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+    <style>
+      :root {
+        --tvk-sky: #0194f3;
+        --tvk-blue: #0770cd;
+        --tvk-navy: #0c2c57;
+        --tvk-orange: #ff5e1f;
+        --tvk-orange-dark: #e64d12;
+        --bg: #f4f7fa;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Sticky Header */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+        padding: 13px 20px;
+        transition: box-shadow 0.2s ease;
+      }
+
+      .topbar.is-stuck {
+        box-shadow: 0 6px 20px rgba(7, 112, 205, 0.12);
+      }
+
+      .topbar-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.2rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--tvk-sky);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        display: block;
+        flex-shrink: 0;
+        filter: drop-shadow(0 3px 8px rgba(7, 112, 205, 0.2));
+      }
+
+      .brand-text span {
+        color: var(--tvk-navy);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-nav a {
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.84rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a.is-active {
+        color: var(--tvk-sky);
+      }
+
+      .topbar-badge {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .menu-toggle-btn {
+        display: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--tvk-navy);
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .menu-toggle-btn:hover {
+        background: #e6f4ff;
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+
+      h1,
+      h2,
+      h3 {
+        letter-spacing: -0.02em;
+      }
+
+      strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .hero-tvk {
+        background: linear-gradient(135deg, #0770cd 0%, #0194f3 60%, #0c2c57 100%);
+        color: #ffffff;
+        padding: 42px 20px 68px;
+        text-align: center;
+      }
+
+      .hero-inner {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .hero-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: #e0f2fe;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+      }
+
+      .hero-title {
+        margin: 0 0 8px;
+        font-size: clamp(1.55rem, 3.6vw, 2.25rem);
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .hero-meta {
+        margin: 0;
+        color: #bae6fd;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .main-tvk {
+        flex: 1 0 auto;
+        width: 100%;
+        max-width: 900px;
+        margin: -34px auto 0;
+        padding: 0 20px 72px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .terms-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px 24px;
+        box-shadow: 0 8px 22px rgba(12, 44, 87, 0.06);
+        font-size: 0.92rem;
+        line-height: 1.65;
+        color: #334155;
+      }
+
+      .intro-quote {
+        margin: 0;
+        background: #f0f9ff;
+        border-left: 4px solid var(--tvk-sky);
+        border-radius: 0 10px 10px 0;
+        padding: 14px 16px;
+        color: var(--tvk-navy);
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+
+      .step-heading {
+        margin: 0 0 14px;
+        font-size: 1.06rem;
+        font-weight: 800;
+        color: var(--tvk-navy);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .step-num {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        font-size: 0.82rem;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+
+      .terms-card p {
+        margin: 0 0 12px;
+      }
+
+      .terms-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .terms-list {
+        margin: 8px 0 0;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .terms-list.ordered {
+        list-style-type: decimal;
+      }
+
+      .security-box {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-left: 4px solid var(--tvk-blue);
+        border-radius: 12px;
+        padding: 16px 18px;
+        font-style: italic;
+        color: #1e293b;
+      }
+
+      .email-card {
+        margin-top: 14px;
+        padding: 18px 16px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        text-align: center;
+        background: #f8fafc;
+      }
+
+      .email-label {
+        margin: 0 0 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .email-value {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 800;
+        color: var(--tvk-blue);
+      }
+
+      /* Footer */
+      .site-footer {
+        background: var(--tvk-navy);
+        color: #e2e8f0;
+        border-top: 1px solid var(--border);
+        padding: 36px 20px 28px;
+        margin-top: auto;
+      }
+
+      .footer-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .footer-logo {
+        width: 28px;
+        height: 28px;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .footer-brand span {
+        color: #7dd3fc;
+      }
+
+      .footer-copy {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #cbd5e1;
+        max-width: 440px;
+        line-height: 1.55;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+      }
+
+      .footer-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .footer-links a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      .footer-bottom {
+        max-width: 1180px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 11px 16px;
+        }
+
+        .brand {
+          font-size: 1.05rem;
+          gap: 7px;
+        }
+
+        .brand-logo {
+          width: 30px;
+          height: 30px;
+        }
+
+        .topbar-badge {
+          display: none;
+        }
+
+        .menu-toggle-btn {
+          display: inline-flex;
+        }
+
+        .topbar-right {
+          position: static;
+          gap: 0;
+        }
+
+        .topbar-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+          box-shadow: 0 12px 24px rgba(12, 44, 87, 0.12);
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 6px 12px 10px;
+        }
+
+        .topbar-nav.is-open {
+          display: flex;
+        }
+
+        .topbar-nav a {
+          padding: 11px 12px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+        }
+
+        .topbar-nav a:hover {
+          background: #f0f9ff;
+        }
+
+        .main-tvk {
+          padding: 0 12px 56px;
+        }
+
+        .terms-card {
+          padding: 18px 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="topbar" class="topbar">
+      <div class="topbar-inner">
+        <a href="/" class="brand" aria-label="sewavillapuncak.id Beranda">
+          <svg
+            class="brand-logo"
+            viewBox="0 0 64 64"
+            width="34"
+            height="34"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="svp-badge-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0194f3" />
+                <stop offset="100%" stop-color="#0c2c57" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#svp-badge-bg)" />
+            <path
+              d="M14 33 L32 16 L50 33"
+              fill="none"
+              stroke="#ff5e1f"
+              stroke-width="5.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 31 V44 H43 V31"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="4.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M16 51 Q24 47 32 51 T48 51"
+              fill="none"
+              stroke="#7dd3fc"
+              stroke-width="3.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="brand-text">sewavillapuncak<span>.id</span></span>
+        </a>
+        <div class="topbar-right">
+          <nav id="topbar-nav" class="topbar-nav" aria-label="Navigasi utama">
+            <a href="/cara-pesan">Cara Pesan</a>
+            <a href="/bantuan">Bantuan</a>
+            <a href="/kontak">Kontak</a>
+            <a href="/kebijakan-privasi" class="is-active">Kebijakan Privasi</a>
+          </nav>
+          <span class="topbar-badge">Sewa Villa Puncak, Cipanas &amp; Kota Bunga</span>
+          <button
+            type="button"
+            id="menu-toggle-btn"
+            class="menu-toggle-btn"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="topbar-nav"
+          >
+            &#9776;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero-tvk">
+      <div class="hero-inner">
+        <span class="hero-badge">Perlindungan Data</span>
+        <h1 class="hero-title">Kebijakan Privasi</h1>
+        <p class="hero-meta">sewavillapuncak.id &bull; Terakhir diperbarui: {lastUpdated}</p>
+      </div>
+    </section>
+
+    <main class="main-tvk">
+      <section class="terms-card">
+        <p class="intro-quote">
+          Selamat datang di <strong>sewavillapuncak.id</strong>. Kami sangat menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi yang Anda bagikan kepada kami. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan menjaga informasi Anda saat menggunakan layanan kami.
+        </p>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">01</span>
+          Informasi yang Kami Kumpulkan
+        </h2>
+        <p>Kami mengumpulkan informasi terbatas yang diperlukan untuk meningkatkan layanan kami:</p>
+        <ul class="terms-list">
+          <li>
+            <strong>Informasi Kontak:</strong> Nama dan nomor WhatsApp yang Anda gunakan saat menghubungi admin kami untuk reservasi villa.
+          </li>
+          <li>
+            <strong>Data Teknis:</strong> Alamat IP, jenis browser, dan perangkat yang digunakan untuk mengakses website kami guna analisis performa situs.
+          </li>
+          <li>
+            <strong>Data Penggunaan:</strong> Halaman yang Anda kunjungi dan lama waktu yang Anda habiskan untuk membantu kami mengoptimalkan daftar villa populer.
+          </li>
+        </ul>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">02</span>
+          Penggunaan Informasi
+        </h2>
+        <p>Data yang kami kumpulkan digunakan untuk tujuan berikut:</p>
+        <ol class="terms-list ordered">
+          <li>Memproses permintaan reservasi dan pengecekan ketersediaan villa.</li>
+          <li>Memberikan informasi atau promo terbaru terkait villa di kawasan Puncak.</li>
+          <li>Meningkatkan pengalaman pengguna dan keamanan fungsional website kami.</li>
+          <li>Memenuhi kewajiban hukum atau peraturan yang berlaku.</li>
+        </ol>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">03</span>
+          Keamanan Data
+        </h2>
+        <div class="security-box">
+          Kami menerapkan standar keamanan teknis yang ketat untuk mencegah akses tidak sah, perubahan, atau penyalahgunaan data pribadi Anda. Kami tidak akan pernah menjual, menyewakan, atau memberikan data pribadi Anda kepada pihak ketiga untuk kepentingan komersial mereka tanpa persetujuan Anda.
+        </div>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">04</span>
+          Layanan Pihak Ketiga
+        </h2>
+        <p>
+          Website kami menggunakan layanan pihak ketiga seperti <strong>Cloudinary</strong> untuk optimasi gambar dan <strong>WhatsApp</strong> untuk media komunikasi. Harap dicatat bahwa layanan pihak ketiga ini memiliki kebijakan privasi mereka sendiri.
+        </p>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">05</span>
+          Persetujuan Anda
+        </h2>
+        <p>
+          Dengan menggunakan layanan kami, Anda menyatakan setuju dengan syarat dan ketentuan dalam Kebijakan Privasi ini. Jika kami melakukan perubahan signifikan, kami akan memperbarui tanggal pembaruan di bagian atas halaman ini.
+        </p>
+      </section>
+
+      <section class="terms-card">
+        <h2 class="step-heading">
+          <span class="step-num">06</span>
+          Hubungi Kami
+        </h2>
+        <p>
+          Jika Anda memiliki pertanyaan mengenai kebijakan privasi ini atau penggunaan data Anda, silakan hubungi kami melalui:
+        </p>
+        <div class="email-card">
+          <p class="email-label">Email Resmi</p>
+          <p class="email-value">privacy@sewavillapuncak.id</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <svg
+              class="footer-logo"
+              viewBox="0 0 64 64"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#0194f3" />
+              <path
+                d="M14 33 L32 16 L50 33"
+                fill="none"
+                stroke="#ff5e1f"
+                stroke-width="5.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 31 V44 H43 V31"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 51 Q24 47 32 51 T48 51"
+                fill="none"
+                stroke="#e0f2fe"
+                stroke-width="3.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>sewavillapuncak<span>.id</span></span>
+          </div>
+          <p class="footer-copy">
+            Portal informasi dan reservasi villa di kawasan Puncak, Cipanas, Cisarua, dan Kota Bunga.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Tautan informasi">
+          <a href="/cara-pesan">Cara Pesan</a>
+          <a href="/bantuan">Bantuan</a>
+          <a href="/kontak">Kontak</a>
+          <a href="/kebijakan-privasi">Kebijakan Privasi</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>sewavillapuncak.id</span>
+        <span>Puncak • Cipanas • Cisarua • Kota Bunga</span>
+      </div>
+    </footer>
+
+    <script is:inline>
+      const menuToggleBtn = document.getElementById("menu-toggle-btn");
+      const topbarNav = document.getElementById("topbar-nav");
+      const topbarEl = document.getElementById("topbar");
+
+      function setMobileMenuOpen(isOpen) {
+        if (!topbarNav || !menuToggleBtn) return;
+        topbarNav.classList.toggle("is-open", isOpen);
+        menuToggleBtn.setAttribute("aria-expanded", String(isOpen));
+        menuToggleBtn.innerHTML = isOpen ? "&times;" : "&#9776;";
+        menuToggleBtn.setAttribute(
+          "aria-label",
+          isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"
+        );
+      }
+
+      menuToggleBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = topbarNav?.classList.contains("is-open") || false;
+        setMobileMenuOpen(!isOpen);
+      });
+
+      topbarNav?.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => setMobileMenuOpen(false));
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!topbarNav?.classList.contains("is-open")) return;
+        const target = e.target;
+        if (target instanceof Node && !topbarNav.contains(target) && target !== menuToggleBtn) {
+          setMobileMenuOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") setMobileMenuOpen(false);
+      });
+
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 640) setMobileMenuOpen(false);
+      });
+
+      function handleStickyHeader() {
+        if (!topbarEl) return;
+        topbarEl.classList.toggle("is-stuck", window.scrollY > 4);
+      }
+
+      window.addEventListener("scroll", handleStickyHeader, { passive: true });
+      handleStickyHeader();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,158 @@
+---
+const waNumber = "6285938573419";
+---
+
+<div class="mt-10 w-full max-w-4xl bg-white rounded-3xl border border-slate-200 text-left overflow-hidden shadow-xl relative backdrop-blur-md">
+  <!-- Header -->
+  <div class="px-5 sm:px-6 py-5 border-b border-slate-200 bg-slate-50">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div>
+        <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-700 inline-block animate-pulse"></span>
+          Cek Ketersediaan Domain
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-700 mt-1 font-medium">
+          Pastikan nama domain impian Anda masih tersedia sebelum kehabisan.
+        </p>
+      </div>
+      <span class="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-3.5 py-1.5 rounded-full whitespace-nowrap shadow-sm">
+        <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        Gratis SSL & Hosting
+      </span>
+    </div>
+  </div>
+
+  <!-- Input + Button -->
+  <div class="px-5 sm:px-6 py-5 bg-white">
+    <div class="flex flex-col sm:flex-row gap-3">
+      <input
+        type="text"
+        id="domain-input"
+        placeholder="contoh: sayursuper"
+        class="w-full px-4 py-3 rounded-full bg-slate-50 border border-slate-300 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 text-slate-900 placeholder-slate-500 outline-none transition-all text-sm font-medium"
+      />
+      <button
+        type="button"
+        id="domain-btn"
+        class="px-6 py-3 bg-purple-950 text-white font-bold rounded-full hover:bg-purple-900 active:scale-[0.98] transition-all text-sm whitespace-nowrap flex items-center justify-center gap-2 shadow-md shadow-purple-950/20 cursor-pointer"
+      >
+        Cari Domain
+      </button>
+    </div>
+
+    <!-- Error / Loading Message Container -->
+    <div id="domain-msg" class="mt-3 hidden"></div>
+  </div>
+
+  <!-- Hasil Container -->
+  <div id="domain-results-container" class="px-5 sm:px-6 pb-5 bg-white border-t border-slate-200 pt-4 hidden">
+    <p class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-3">
+      Hasil Pencarian
+    </p>
+    <div id="domain-results-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    <p class="text-xs text-slate-700 mt-4 text-center font-medium">
+      Data ketersediaan dari RDAP. Konfirmasi akhir via WhatsApp.
+    </p>
+  </div>
+</div>
+
+<script define:vars={{ waNumber }}>
+  const inputEl = document.getElementById("domain-input");
+  const btnEl = document.getElementById("domain-btn");
+  const msgEl = document.getElementById("domain-msg");
+  const resultsContainer = document.getElementById("domain-results-container");
+  const resultsGrid = document.getElementById("domain-results-grid");
+
+  const tlds = ["com", "id", "co.id", "my.id", "web.id", "biz.id"];
+
+  function getRdapUrl(domain) {
+    const tld = domain.split(".").slice(1).join(".");
+    if (tld === "com") return `https://rdap.verisign.com/com/v1/domain/${domain}`;
+    if (tld.endsWith("id")) return `https://rdap.pandi.id/rdap/domain/${domain}`;
+    return `https://rdap.org/domain/${domain}`;
+  }
+
+  async function checkDomain(domainToCheck) {
+    try {
+      const res = await fetch(getRdapUrl(domainToCheck), {
+        headers: { Accept: "application/rdap+json, application/json" },
+      });
+      if (res.status === 200) return false; // Terdaftar
+      if (res.status === 404) return true;  // Tersedia
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function handleSearch() {
+    const val = inputEl.value.trim().toLowerCase();
+    if (!val) {
+      msgEl.className = "mt-3 px-3 py-2.5 text-xs text-purple-700 bg-purple-50 rounded-xl border border-purple-200 flex items-center gap-2 font-semibold";
+      msgEl.textContent = "Silakan masukkan nama domain terlebih dahulu.";
+      msgEl.classList.remove("hidden");
+      resultsContainer.classList.add("hidden");
+      return;
+    }
+
+    msgEl.classList.add("hidden");
+    btnEl.disabled = true;
+    btnEl.innerHTML = `<span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Memeriksa`;
+    
+    const baseName = val.split(".")[0];
+    resultsGrid.innerHTML = "";
+
+    try {
+      const promises = tlds.map(async (tld) => {
+        const domain = `${baseName}.${tld}`;
+        const available = await checkDomain(domain);
+        return { domain, available };
+      });
+
+      const results = await Promise.all(promises);
+
+      resultsGrid.innerHTML = results.map(item => {
+        const isAvailable = item.available === true;
+        const isTaken = item.available === false;
+        const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo KerabatWeb, saya ingin memesan pembuatan website dengan domain *${item.domain}* yang statusnya tersedia.`)}`;
+
+        let badgeClass = isAvailable ? "text-purple-800 bg-purple-100 border-purple-300 font-bold" : isTaken ? "text-slate-700 bg-slate-200 border-slate-300 font-semibold" : "text-amber-800 bg-amber-100 border-amber-300 font-semibold";
+        let cardClass = isAvailable ? "border-purple-300 bg-purple-50/50 shadow-sm" : isTaken ? "border-slate-200 bg-slate-50/80" : "border-amber-200 bg-amber-50/50";
+        let statusText = isAvailable ? "Tersedia" : isTaken ? "Terdaftar" : "Gangguan";
+
+        return `
+          <div class="relative flex flex-col justify-between p-4 rounded-2xl border transition-all ${cardClass}">
+            ${isAvailable ? '<div class="absolute top-0 left-0 right-0 h-1 bg-purple-700 rounded-t-2xl"></div>' : ''}
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full border ${badgeClass}">
+                  ${statusText}
+                </span>
+              </div>
+              <p class="text-sm sm:text-base font-bold truncate ${isTaken ? 'text-slate-600 line-through' : 'text-slate-900'}">${item.domain}</p>
+            </div>
+            <div class="mt-3">
+              ${isAvailable ? `<a href="${waLink}" target="_blank" class="block w-full py-2 px-3 bg-purple-950 hover:bg-purple-900 text-white text-xs font-bold rounded-full text-center transition-all shadow-sm">Klaim Domain</a>` : `<p class="text-xs text-slate-700 text-center py-2 font-semibold">Tidak tersedia</p>`}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      resultsContainer.classList.remove("hidden");
+    } catch {
+      msgEl.className = "mt-3 px-3 py-2.5 text-xs text-purple-700 bg-purple-50 rounded-xl border border-purple-200 flex items-center gap-2 font-semibold";
+      msgEl.textContent = "Gagal terhubung ke layanan RDAP. Silakan coba lagi.";
+      msgEl.classList.remove("hidden");
+    } finally {
+      btnEl.disabled = false;
+      btnEl.textContent = "Cari Domain";
+    }
+  }
+
+  btnEl.addEventListener("click", handleSearch);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSearch();
+  });
+</script>

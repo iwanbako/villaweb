@@ -1,0 +1,187 @@
+---
+// Data hardcoded tetap sama untuk performa
+const areaLinks = [
+  { name: "Bukit Danau", slug: "villa-bukit-danau" },
+  { name: "Cipanas", slug: "villa-cipanas" },
+  { name: "Tugu", slug: "villa-tugu" },
+  { name: "Green Apple", slug: "villa-green-apple" },
+  { name: "Kota Bunga", slug: "villa-kota-bunga" },
+  { name: "Coolibah", slug: "villa-coolibah" },
+  { name: "Cipendawa", slug: "villa-cipendawa" },
+  { name: "Ciloto", slug: "villa-ciloto" },
+  { name: "Cisarua", slug: "villa-cisarua" }
+];
+
+const hargaLinks = [
+  { name: "Harga 1 jutaan", slug: "harga-1-jutaan" },
+  { name: "Harga 2 jutaan", slug: "harga-2-jutaan" },
+  { name: "Harga 3 jutaan", slug: "harga-3-jutaan" },
+  { name: "Harga 4 jutaan", slug: "harga-4-jutaan" },
+  { name: "Harga 5 jutaan", slug: "harga-5-jutaan" }
+];
+
+const fiturLinks = [
+  { name: "Private Pool", slug: "villa-private-pool", icon: "🏊" },
+  { name: "View Gunung", slug: "villa-view-gunung", icon: "⛰️" },
+  { name: "Villa Mewah", slug: "villa-mewah", icon: "✨" }
+];
+
+const infoLinks = [
+  { name: "Cara Pesan", href: "/cara-pesan" },
+  { 
+    name: "Telegram Bot", 
+    href: "https://t.me/villapuncak_bot", 
+    isTelegram: true 
+  },
+  { name: "Kebijakan Privasi", href: "/kebijakan-privasi" },
+  { name: "Syarat & Ketentuan", href: "/syarat-ketentuan" }
+];
+---
+
+<footer class="bg-[#003580] text-white pt-12 pb-8 text-[13px] mt-20 border-t-4 border-[#febb02]">
+  <div class="max-w-[1100px] mx-auto px-6">
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-x-8 md:gap-y-12 mb-10 text-left">
+      
+      <div class="md:col-span-2 border-b border-white/10 md:border-0 footer-accordion">
+        <button class="w-full flex justify-between items-center py-4 md:py-0 md:cursor-default accordion-trigger group">
+          <span class="font-bold text-base tracking-tight border-[#febb02] md:border-b-2 pb-2 text-left">
+            📍 Lokasi Terpopuler
+          </span>
+          <span class="md:hidden transition-transform duration-300 icon-chevron text-[#febb02]">▼</span>
+        </button>
+        <div class="accordion-content hidden md:block pb-6 md:pb-0 pt-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-3 text-left">
+            {areaLinks.map(area => (
+              <a href={`/sewa/${area.slug}`} class="text-[#febb02] hover:text-white transition-colors truncate font-semibold">
+                Villa di {area.name}
+              </a>
+            ))}
+            <a href="/villas" class="text-white hover:text-[#febb02] font-bold underline decoration-dotted">Semua Villa →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-b border-white/10 md:border-0 footer-accordion">
+        <button class="w-full flex justify-between items-center py-4 md:py-0 md:cursor-default accordion-trigger">
+          <h4 class="font-bold text-base tracking-tight border-[#febb02] md:border-b-2 pb-2 text-left">
+            💰 Harga per Malam
+          </h4>
+          <span class="md:hidden transition-transform duration-300 icon-chevron text-[#febb02]">▼</span>
+        </button>
+        <div class="accordion-content hidden md:block pb-6 md:pb-0 pt-3 text-left">
+          <div class="flex flex-col gap-3">
+            {hargaLinks.map(link => (
+              <a href={`/sewa/${link.slug}`} class="text-[#f0f0f0] hover:text-[#febb02] transition-colors font-medium">
+                {link.name}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div class="border-b border-white/10 md:border-0 footer-accordion">
+        <button class="w-full flex justify-between items-center py-4 md:py-0 md:cursor-default accordion-trigger">
+          <h4 class="font-bold text-base tracking-tight border-[#febb02] md:border-b-2 pb-2 text-left">
+            ℹ️ Informasi
+          </h4>
+          <span class="md:hidden transition-transform duration-300 icon-chevron text-[#febb02]">▼</span>
+        </button>
+        <div class="accordion-content hidden md:block pb-6 md:pb-0 pt-3 text-left">
+          <ul class="space-y-3 font-medium">
+            {infoLinks.map(info => (
+              <li>
+                <a 
+                  href={info.href} 
+                  target={info.isTelegram ? "_blank" : "_self"}
+                  class="text-[#f0f0f0] hover:text-[#febb02] transition-colors flex items-center gap-2"
+                >
+                  {info.isTelegram && (
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.717-.962 4.084-1.362 5.411-.17.563-.442.752-.642.771-.439.041-.772-.289-1.198-.569-.666-.438-1.043-.711-1.689-1.135-.747-.49-.263-.759.163-1.197.111-.114 2.045-1.876 2.082-2.032.005-.02.009-.094-.035-.133-.044-.039-.108-.026-.155-.015-.067.015-1.133.721-3.197 2.109-.302.208-.576.31-.82.304-.269-.006-.788-.153-1.174-.279-.473-.153-.849-.234-.816-.494.017-.135.201-.274.553-.417 2.17-.942 3.617-1.564 4.34-1.867 2.064-.86 2.492-1.01 2.772-1.01.062 0 .199.015.289.088.075.062.096.146.104.21.01.082.012.169.006.25z"/>
+                    </svg>
+                  )}
+                  {info.name}
+                </a>
+              </li>
+            ))}
+            {fiturLinks.map(f => (
+              <li>
+                <a href={`/sewa/${f.slug}`} class="text-[#f0f0f0] hover:text-[#febb02] flex items-center gap-2">
+                  <span class="w-4 text-center">{f.icon}</span> {f.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pt-10 border-t border-white/10">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+        <div class="text-center md:text-left">
+          <span class="text-3xl font-black italic tracking-tighter leading-none">
+            akangvillapuncak<span class="text-[#febb02]">.com</span>
+          </span>
+          <p class="mt-4 text-white/60 max-w-xl text-[11px] font-medium leading-relaxed">
+            Portal database villa terverifikasi di kawasan Puncak dan direktori hotel strategis di Asia. Kami membantu Anda mendapatkan unit penginapan terbaik dengan harga terjangkau. Hak Cipta © 2026.
+          </p>
+        </div>
+        <div class="flex gap-4">
+            <a href="/bantuan" class="bg-white/5 px-4 py-2 rounded font-bold tracking-widest text-[10px] hover:bg-[#febb02] hover:text-[#003580] transition-all">Bantuan</a>
+            <a href="/kontak" class="bg-[#febb02] text-[#003580] px-4 py-2 rounded font-bold tracking-widest text-[10px] hover:bg-white transition-all">Hubungi Kami</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function initFooterAccordion() {
+    const triggers = document.querySelectorAll('.accordion-trigger');
+    
+    triggers.forEach(trigger => {
+      trigger.removeEventListener('click', toggleAccordion);
+      trigger.addEventListener('click', toggleAccordion);
+    });
+  }
+
+  function toggleAccordion(event) {
+    if (window.innerWidth < 768) {
+      const trigger = event.currentTarget;
+      const content = trigger.nextElementSibling;
+      const icon = trigger.querySelector('.icon-chevron');
+      const isHidden = content?.classList.contains('hidden');
+      
+      document.querySelectorAll('.accordion-content').forEach(c => {
+         c.classList.add('hidden');
+      });
+      document.querySelectorAll('.icon-chevron').forEach(i => {
+        i.style.transform = 'rotate(0deg)';
+      });
+
+      if (isHidden && content && icon) {
+        content.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
+  }
+
+  initFooterAccordion();
+  document.addEventListener('astro:after-swap', initFooterAccordion);
+</script>
+
+<style>
+  footer {
+    font-family: BlinkMacSystemFont,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  h4, a, p, li, span { 
+    text-align: left !important; 
+    font-style: normal;
+  }
+  .accordion-content { transition: all 0.3s ease; }
+  @media (min-width: 768px) {
+    .accordion-trigger { pointer-events: none; }
+  }
+</style>

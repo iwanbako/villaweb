@@ -1,0 +1,955 @@
+---
+export const prerender = true;
+
+const canonicalUrl = "https://villa.web.id/bantuan";
+const pageTitle = "Pusat Bantuan & FAQ | villa.web.id - Solusi Sewa Villa Puncak";
+const pageDescription =
+  "Punya pertanyaan seputar sewa villa di Puncak? Temukan jawaban cepat atas pertanyaan yang paling sering diajukan di villa.web.id.";
+
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#0770cd"/><path d="M14 33 L32 16 L50 33" fill="none" stroke="#ff5e1f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 31 V44 H43 V31" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 51 Q24 47 32 51 T48 51" fill="none" stroke="#7dd3fc" stroke-width="3.8" stroke-linecap="round"/></svg>`;
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+
+const faqs = [
+  {
+    kategori: "Pemesanan & Pembayaran",
+    items: [
+      {
+        q: "Bagaimana cara memesan villa?",
+        a: "Pilih villa yang Anda sukai, lalu klik tombol 'Hubungi Admin' untuk cek ketersediaan tanggal via WhatsApp.",
+      },
+      {
+        q: "Apakah harus membayar DP?",
+        a: "Ya, Down Payment (DP) sebesar 50% diperlukan untuk mengunci jadwal villa agar tidak diambil oleh penyewa lain.",
+      },
+      {
+        q: "Apakah harga sudah termasuk pajak?",
+        a: "Ya, harga yang tertera di website kami adalah harga jujur yang sudah termasuk pajak dan biaya layanan.",
+      },
+    ],
+  },
+  {
+    kategori: "Fasilitas & Kapasitas",
+    items: [
+      {
+        q: "Apakah kolam renang bersifat pribadi (private)?",
+        a: "Untuk villa dengan label 'Private Pool', kolam renang hanya digunakan secara eksklusif oleh rombongan Anda.",
+      },
+      {
+        q: "Bolehkah jumlah tamu melebihi kapasitas?",
+        a: "Tiap villa memiliki batas maksimal. Jika melebihi kapasitas, Anda wajib menginformasikan admin untuk kemungkinan biaya extra bed.",
+      },
+      {
+        q: "Apakah tersedia dapur dan alat masak?",
+        a: "Hampir seluruh villa kami dilengkapi dapur, kompor, rice cooker, dan peralatan masak standar lainnya.",
+      },
+    ],
+  },
+  {
+    kategori: "Check-in & Lokasi",
+    items: [
+      {
+        q: "Jam berapa waktu check-in dan check-out?",
+        a: "Waktu check-in standar adalah pukul 14:00 WIB dan check-out pukul 12:00 WIB.",
+      },
+      {
+        q: "Apakah lokasi villa mudah dijangkau kendaraan?",
+        a: "Kami mengkurasi villa dengan akses jalan yang memadai. Detail lokasi/share loc akan dikirimkan admin setelah DP masuk.",
+      },
+      {
+        q: "Apakah di villa tersedia air panas?",
+        a: "Sebagian besar villa di kawasan Puncak telah dilengkapi fasilitas water heater di setiap kamar mandi.",
+      },
+    ],
+  },
+];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.flatMap((cat) =>
+    cat.items.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    }))
+  ),
+};
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="villa.web.id" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDescription} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+    <style>
+      :root {
+        --tvk-sky: #0194f3;
+        --tvk-blue: #0770cd;
+        --tvk-navy: #0c2c57;
+        --tvk-orange: #ff5e1f;
+        --tvk-orange-dark: #e64d12;
+        --bg: #f4f7fa;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Sticky Header Gaya Traveloka */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+        padding: 13px 20px;
+        transition: box-shadow 0.2s ease;
+      }
+
+      .topbar.is-stuck {
+        box-shadow: 0 6px 20px rgba(7, 112, 205, 0.12);
+      }
+
+      .topbar-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.25rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--tvk-sky);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        display: block;
+        flex-shrink: 0;
+        filter: drop-shadow(0 3px 8px rgba(7, 112, 205, 0.2));
+      }
+
+      .brand-text span {
+        color: var(--tvk-navy);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-nav a {
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.84rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a.is-active {
+        color: var(--tvk-sky);
+      }
+
+      .topbar-badge {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .menu-toggle-btn {
+        display: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--tvk-navy);
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .menu-toggle-btn:hover {
+        background: #e6f4ff;
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+
+      .hero-tvk {
+        background: linear-gradient(135deg, #0770cd 0%, #0194f3 60%, #0c2c57 100%);
+        color: #ffffff;
+        padding: 40px 20px 64px;
+        text-align: center;
+      }
+
+      .hero-inner {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      .hero-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: #e0f2fe;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+      }
+
+      .hero-title {
+        margin: 0 0 10px;
+        font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .hero-desc {
+        margin: 0 auto;
+        max-width: 640px;
+        color: #e0f2fe;
+        font-size: 0.94rem;
+        line-height: 1.55;
+      }
+
+      .main-tvk {
+        flex: 1 0 auto;
+        width: 100%;
+        max-width: 920px;
+        margin: -30px auto 0;
+        padding: 0 20px 68px;
+      }
+
+      .search-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: 0 10px 24px rgba(12, 44, 87, 0.1);
+        margin-bottom: 24px;
+      }
+
+      .search-field-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 14px;
+        font-size: 1rem;
+        pointer-events: none;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 11px 14px 11px 40px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #f8fafc;
+        color: var(--text);
+        font-size: 0.92rem;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+      }
+
+      .search-input:focus {
+        outline: none;
+        background: #ffffff;
+        border-color: var(--tvk-sky);
+      }
+
+      .categories-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .category-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 14px rgba(12, 44, 87, 0.04);
+      }
+
+      .category-title {
+        margin: 0 0 14px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--tvk-navy);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .category-title::before {
+        content: "";
+        width: 4px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--tvk-sky);
+        display: inline-block;
+      }
+
+      .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      details.faq-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f8fafc;
+        transition: border-color 0.15s ease;
+      }
+
+      details.faq-item:hover {
+        border-color: #93c5fd;
+      }
+
+      details.faq-item > summary {
+        list-style: none;
+        padding: 14px 16px;
+        font-weight: 700;
+        font-size: 0.93rem;
+        color: var(--text);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        user-select: none;
+      }
+
+      details.faq-item > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.faq-item[open] > summary {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+      }
+
+      .faq-chevron {
+        color: var(--tvk-blue);
+        font-size: 0.8rem;
+        flex-shrink: 0;
+        transition: transform 0.2s ease;
+      }
+
+      details.faq-item[open] .faq-chevron {
+        transform: rotate(180deg);
+      }
+
+      .faq-answer {
+        padding: 13px 16px 15px;
+        background: #ffffff;
+        border-top: 1px solid var(--border);
+        font-size: 0.89rem;
+        line-height: 1.62;
+        color: #334155;
+      }
+
+      .empty-state {
+        display: none;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 28px 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .empty-state.is-visible {
+        display: block;
+      }
+
+      .support-banner {
+        margin-top: 24px;
+        background: linear-gradient(135deg, #0c2c57 0%, #0770cd 100%);
+        color: #ffffff;
+        border-radius: 16px;
+        padding: 26px 24px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        box-shadow: 0 12px 26px rgba(12, 44, 87, 0.14);
+      }
+
+      .support-copy h2 {
+        margin: 0 0 6px;
+        font-size: 1.22rem;
+        font-weight: 800;
+      }
+
+      .support-copy p {
+        margin: 0;
+        color: #e0f2fe;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        max-width: 500px;
+      }
+
+      .support-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .btn-wa-tvk {
+        background: #16a34a;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 11px 18px;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        transition: background-color 0.15s ease;
+      }
+
+      .btn-wa-tvk:hover {
+        background: #15803d;
+      }
+
+      .btn-mail-tvk {
+        background: var(--tvk-orange);
+        color: #ffffff;
+        text-decoration: none;
+        padding: 11px 18px;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        transition: background-color 0.15s ease;
+      }
+
+      .btn-mail-tvk:hover {
+        background: var(--tvk-orange-dark);
+      }
+
+      /* Footer Gaya Traveloka */
+      .site-footer {
+        background: var(--tvk-navy);
+        color: #e2e8f0;
+        border-top: 1px solid var(--border);
+        padding: 36px 20px 28px;
+        margin-top: auto;
+      }
+
+      .footer-inner {
+        max-width: 1180px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .footer-logo {
+        width: 28px;
+        height: 28px;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .footer-brand span {
+        color: #7dd3fc;
+      }
+
+      .footer-copy {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #cbd5e1;
+        max-width: 440px;
+        line-height: 1.55;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+      }
+
+      .footer-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .footer-links a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      .footer-bottom {
+        max-width: 1180px;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 11px 16px;
+        }
+
+        .brand {
+          font-size: 1.12rem;
+          gap: 7px;
+        }
+
+        .brand-logo {
+          width: 30px;
+          height: 30px;
+        }
+
+        .topbar-badge {
+          display: none;
+        }
+
+        .menu-toggle-btn {
+          display: inline-flex;
+        }
+
+        .topbar-right {
+          position: static;
+          gap: 0;
+        }
+
+        .topbar-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+          box-shadow: 0 12px 24px rgba(12, 44, 87, 0.12);
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 6px 12px 10px;
+        }
+
+        .topbar-nav.is-open {
+          display: flex;
+        }
+
+        .topbar-nav a {
+          padding: 11px 12px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+        }
+
+        .topbar-nav a:hover {
+          background: #f0f9ff;
+        }
+
+        .main-tvk {
+          padding: 0 12px 56px;
+        }
+
+        .category-card {
+          padding: 14px 16px;
+        }
+
+        .support-banner {
+          padding: 20px 18px;
+        }
+
+        .support-actions {
+          width: 100%;
+        }
+
+        .btn-wa-tvk,
+        .btn-mail-tvk {
+          flex: 1 1 auto;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="topbar" class="topbar">
+      <div class="topbar-inner">
+        <a href="/" class="brand" aria-label="villa.web.id Beranda">
+          <svg
+            class="brand-logo"
+            viewBox="0 0 64 64"
+            width="34"
+            height="34"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="vw-badge-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0194f3" />
+                <stop offset="100%" stop-color="#0c2c57" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#vw-badge-bg)" />
+            <path
+              d="M14 33 L32 16 L50 33"
+              fill="none"
+              stroke="#ff5e1f"
+              stroke-width="5.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 31 V44 H43 V31"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="4.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M16 51 Q24 47 32 51 T48 51"
+              fill="none"
+              stroke="#7dd3fc"
+              stroke-width="3.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="brand-text">villa<span>.web.id</span></span>
+        </a>
+        <div class="topbar-right">
+          <nav id="topbar-nav" class="topbar-nav" aria-label="Navigasi utama">
+            <a href="/cara-pesan">Cara Pesan</a>
+            <a href="/bantuan" class="is-active">Bantuan</a>
+            <a href="/kontak">Kontak</a>
+            <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+          </nav>
+          <span class="topbar-badge">Sewa Villa Puncak, Cipanas &amp; Kota Bunga</span>
+          <button
+            type="button"
+            id="menu-toggle-btn"
+            class="menu-toggle-btn"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="topbar-nav"
+          >
+            &#9776;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero-tvk">
+      <div class="hero-inner">
+        <span class="hero-badge">Pusat Bantuan &amp; FAQ</span>
+        <h1 class="hero-title">Ada yang Bisa Kami Bantu?</h1>
+        <p class="hero-desc">
+          Temukan jawaban cepat seputar pemesanan, DP, kapasitas tamu, fasilitas villa, serta jadwal check-in dan check-out di kawasan Puncak.
+        </p>
+      </div>
+    </section>
+
+    <main class="main-tvk">
+      <div class="search-card">
+        <div class="search-field-wrap">
+          <span class="search-icon" aria-hidden="true">&#128269;</span>
+          <input
+            id="faq-search-input"
+            type="text"
+            placeholder="Cari pertanyaan (contoh: DP, check-in, kolam renang, dapur...)"
+            class="search-input"
+            aria-label="Cari pertanyaan FAQ"
+          />
+        </div>
+      </div>
+
+      <div id="faq-categories" class="categories-wrap">
+        {
+          faqs.map((cat) => (
+            <section class="category-card" aria-label={cat.kategori}>
+              <h2 class="category-title">{cat.kategori}</h2>
+              <div class="faq-list">
+                {
+                  cat.items.map((item) => (
+                    <details class="faq-item" data-search={`${item.q} ${item.a}`.toLowerCase()}>
+                      <summary>
+                        <span>{item.q}</span>
+                        <span class="faq-chevron" aria-hidden="true">&#9660;</span>
+                      </summary>
+                      <div class="faq-answer">{item.a}</div>
+                    </details>
+                  ))
+                }
+              </div>
+            </section>
+          ))
+        }
+      </div>
+
+      <p id="faq-empty" class="empty-state">
+        Tidak ditemukan pertanyaan yang cocok dengan kata kunci tersebut. Silakan hubungi tim admin kami langsung.
+      </p>
+
+      <section class="support-banner" aria-label="Kontak bantuan">
+        <div class="support-copy">
+          <h2>Masih butuh bantuan lainnya?</h2>
+          <p>
+            Tim villa.web.id siap membantu cek ketersediaan tanggal, rekomendasi kapasitas rombongan, dan proses booking.
+          </p>
+        </div>
+        <div class="support-actions">
+          <a
+            href="https://wa.me/6285938573419"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-wa-tvk"
+          >
+            Chat WhatsApp Admin
+          </a>
+          <a href="mailto:support@villa.web.id" class="btn-mail-tvk">
+            Kirim Email
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <svg
+              class="footer-logo"
+              viewBox="0 0 64 64"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#0194f3" />
+              <path
+                d="M14 33 L32 16 L50 33"
+                fill="none"
+                stroke="#ff5e1f"
+                stroke-width="5.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 31 V44 H43 V31"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 51 Q24 47 32 51 T48 51"
+                fill="none"
+                stroke="#e0f2fe"
+                stroke-width="3.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>villa<span>.web.id</span></span>
+          </div>
+          <p class="footer-copy">
+            Layanan sewa villa di kawasan Puncak, Cipanas, Cisarua, dan Kota Bunga dengan proses booking jelas dan transparan.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Tautan informasi">
+          <a href="/cara-pesan">Cara Pesan</a>
+          <a href="/bantuan">Bantuan</a>
+          <a href="/kontak">Kontak</a>
+          <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>villa.web.id</span>
+        <span>Puncak • Cipanas • Cisarua • Kota Bunga</span>
+      </div>
+    </footer>
+
+    <script is:inline>
+      const menuToggleBtn = document.getElementById("menu-toggle-btn");
+      const topbarNav = document.getElementById("topbar-nav");
+      const topbarEl = document.getElementById("topbar");
+
+      function setMobileMenuOpen(isOpen) {
+        if (!topbarNav || !menuToggleBtn) return;
+        topbarNav.classList.toggle("is-open", isOpen);
+        menuToggleBtn.setAttribute("aria-expanded", String(isOpen));
+        menuToggleBtn.innerHTML = isOpen ? "&times;" : "&#9776;";
+        menuToggleBtn.setAttribute(
+          "aria-label",
+          isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"
+        );
+      }
+
+      menuToggleBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = topbarNav?.classList.contains("is-open") || false;
+        setMobileMenuOpen(!isOpen);
+      });
+
+      topbarNav?.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => setMobileMenuOpen(false));
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!topbarNav?.classList.contains("is-open")) return;
+        const target = e.target;
+        if (target instanceof Node && !topbarNav.contains(target) && target !== menuToggleBtn) {
+          setMobileMenuOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") setMobileMenuOpen(false);
+      });
+
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 640) setMobileMenuOpen(false);
+      });
+
+      function handleStickyHeader() {
+        if (!topbarEl) return;
+        topbarEl.classList.toggle("is-stuck", window.scrollY > 4);
+      }
+
+      window.addEventListener("scroll", handleStickyHeader, { passive: true });
+      handleStickyHeader();
+
+      const searchInput = document.getElementById("faq-search-input");
+      const categoryCards = Array.from(document.querySelectorAll(".category-card"));
+      const emptyMsg = document.getElementById("faq-empty");
+
+      searchInput?.addEventListener("input", () => {
+        const query = (searchInput.value || "").trim().toLowerCase();
+        let totalVisible = 0;
+
+        for (const card of categoryCards) {
+          const items = Array.from(card.querySelectorAll("details.faq-item"));
+          let visibleInCat = 0;
+
+          for (const item of items) {
+            const haystack = item.getAttribute("data-search") || "";
+            const matched = !query || haystack.includes(query);
+            item.style.display = matched ? "" : "none";
+            if (matched) visibleInCat++;
+          }
+
+          card.style.display = visibleInCat > 0 ? "" : "none";
+          totalVisible += visibleInCat;
+        }
+
+        if (emptyMsg) {
+          emptyMsg.classList.toggle("is-visible", Boolean(query) && totalVisible === 0);
+        }
+      });
+    </script>
+  </body>
+</html>

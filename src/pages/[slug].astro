@@ -1,0 +1,2695 @@
+---
+import type { ImageMetadata } from "astro";
+import datavilla from "../data/datavilla.json";
+
+export const prerender = true;
+
+const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#0770cd"/><path d="M14 33 L32 16 L50 33" fill="none" stroke="#ff5e1f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 31 V44 H43 V31" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 51 Q24 47 32 51 T48 51" fill="none" stroke="#7dd3fc" stroke-width="3.8" stroke-linecap="round"/></svg>`;
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+
+interface Villa {
+  id: string;
+  name: string;
+  location: string;
+  price_per_night: number;
+  kapasitas_maks: number;
+  jumlah_kamar: number;
+  rating: number;
+  jumlah_ulasan: number;
+  deskripsi_singkat?: string;
+  deskripsi_panjang?: string;
+  halaman_luas?: boolean;
+  pet_friendly?: boolean;
+  view_gunung?: boolean;
+  desain_klasik?: boolean;
+  private_pool?: boolean;
+  karaoke?: boolean;
+  meja_biliar?: boolean;
+  mewah?: boolean;
+  fasilitas?: string[];
+  wisata_terdekat?: string[];
+  restoran_terdekat?: string[];
+  main_photo_url?: string;
+  gallery_urls?: string[];
+}
+
+interface FaqItem {
+  q: string;
+  a: string;
+}
+
+interface GeneratedPage {
+  slug: string;
+  category: "Kapasitas" | "Kamar Tidur" | "Lokasi" | "Fasilitas" | "Harga" | "Kombinasi";
+  keyword: string;
+  title: string;
+  metaDescription: string;
+  heroSubtitle: string;
+  articleTitle: string;
+  articleParagraphs: string[];
+  tipsList: string[];
+  faqs: FaqItem[];
+  villas: Villa[];
+}
+
+function randomRatingCount(min = 6500, max = 15000): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export function getStaticPaths() {
+  const allVillas = (Array.isArray(datavilla) ? datavilla : []) as Villa[];
+  const pagesMap = new Map<string, GeneratedPage>();
+
+  const toSlug = (t: string) =>
+    (t || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const buildVillaDetailSlug = (v: Villa, index: number) => {
+    const idClean = (v.id || "").trim().toLowerCase();
+    const nameSlug = toSlug(v.name || "");
+
+    if (idClean && nameSlug && toSlug(idClean).includes(nameSlug)) {
+      return toSlug(idClean);
+    }
+    if (idClean && nameSlug) {
+      return `${toSlug(idClean)}-${nameSlug}`;
+    }
+    if (idClean) {
+      return toSlug(idClean);
+    }
+    if (nameSlug) {
+      return nameSlug;
+    }
+    return `villa-${index + 1}`;
+  };
+
+  const usedVillaSlugs = new Set<string>();
+  const villaSlugMap = new Map<string, string>();
+  allVillas.forEach((v, idx) => {
+    let baseSlug = buildVillaDetailSlug(v, idx);
+    if (!baseSlug) baseSlug = `villa-${idx + 1}`;
+
+    let finalSlug = baseSlug;
+    let counter = 2;
+    while (usedVillaSlugs.has(finalSlug)) {
+      finalSlug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    usedVillaSlugs.add(finalSlug);
+    const key = v.id ? `${v.id}::${idx}` : `idx::${idx}`;
+    villaSlugMap.set(key, finalSlug);
+  });
+
+  const fmtRp = (n: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(n);
+
+  const getPriceRangeText = (list: Villa[]) => {
+    if (!list.length) return "terjangkau";
+    const prices = list.map((v) => v.price_per_night || 0).filter((p) => p > 0);
+    if (!prices.length) return "terjangkau";
+    const minP = Math.min(...prices);
+    const maxP = Math.max(...prices);
+    return minP === maxP ? `mulai ${fmtRp(minP)}/malam` : `${fmtRp(minP)} – ${fmtRp(maxP)}/malam`;
+  };
+
+  const addPage = (page: GeneratedPage) => {
+    if (page.villas.length === 0) return;
+    if (!pagesMap.has(page.slug)) {
+      pagesMap.set(page.slug, page);
+    }
+  };
+
+  // 1. SEMUA VARIASI KAPASITAS TAMU
+  const capacityBuckets = [10, 12, 15, 20, 25, 30, 35, 40, 50, 60, 80, 100];
+  for (const cap of capacityBuckets) {
+    const minCap = cap;
+    const maxCap = cap <= 15 ? cap + 5 : cap <= 30 ? cap + 10 : cap + 25;
+    const matched = allVillas.filter(
+      (v) => (v.kapasitas_maks || 0) >= minCap && (v.kapasitas_maks || 0) <= maxCap
+    );
+    if (matched.length > 0) {
+      const keyword = `Sewa Villa Kapasitas ${cap} Orang`;
+      const priceText = getPriceRangeText(matched);
+      addPage({
+        slug: `sewa-villa-kapasitas-${cap}-orang`,
+        category: "Kapasitas",
+        keyword,
+        title: `${keyword} di Puncak & Cipanas`,
+        metaDescription: `Pilihan ${keyword.toLowerCase()} di Puncak, Cipanas, dan Kota Bunga (${matched.length} unit tersedia, harga ${priceText}). Cek foto, fasilitas & booking WA.`,
+        heroSubtitle: `Tersedia ${matched.length} pilihan villa nyaman di kawasan Puncak & Cipanas untuk rombongan sekitar ${cap} orang dengan kisaran tarif ${priceText}.`,
+        articleTitle: `Panduan Lengkap Memilih ${keyword} di Kawasan Puncak`,
+        articleParagraphs: [
+          `Merencanakan perjalanan bersama rombongan sekitar ${cap} orang membutuhkan pertimbangan yang jauh lebih matang dibanding liburan keluarga kecil. Selain jumlah kamar tidur, kenyamanan rombongan sangat ditentukan oleh proporsi ruang keluarga, area makan bersama, jumlah kamar mandi agar antrean pagi tidak menumpuk, serta ketersediaan lahan parkir untuk beberapa mobil atau kendaraan rombongan. Dengan memilih unit berkapasitas ${minCap} hingga ${maxCap} tamu, seluruh peserta memiliki ruang gerak yang cukup leluasa tanpa membuat suasana rumah terasa penuh sesak.`,
+          `Di katalog villa.web.id, tersedia ${matched.length} unit yang sesuai untuk kategori ${keyword.toLowerCase()} dengan kisaran tarif ${priceText}, tersebar di kawasan strategis seperti Puncak, Cipanas, Kota Bunga, Cisarua, dan sekitarnya. Setiap unit memiliki karakter tata ruang yang berbeda—ada yang menonjolkan halaman luas untuk games dan kumpul sore, ada pula yang fokus pada fasilitas hiburan dalam ruangan seperti karaoke, meja biliar, atau private pool.`,
+          `Agar anggaran dan pengalaman menginap tetap seimbang, perhatikan dinamika komposisi peserta sejak awal. Jika rombongan terdiri atas keluarga lintas generasi dengan lansia dan anak-anak, utamakan kamar di lantai dasar serta akses jalan masuk yang landai. Sebaliknya, jika tujuan utamanya adalah gathering komunitas, reuni, atau acara kantor sekitar ${cap} orang, pilih villa dengan ruang berkumpul terbuka, area BBQ, dan sirkulasi udara yang baik agar diskusi maupun aktivitas kebersamaan berjalan lancar.`,
+        ],
+        tipsList: [
+          `Susun pembagian kamar tidur, tempat tidur utama, serta kebutuhan extra bed untuk ${cap} peserta jauh sebelum hari H agar tidak ada tamu yang kebagian ruang kurang nyaman.`,
+          `Periksa lebar akses jalan dan kapasitas parkir kendaraan apabila rombongan datang memakai beberapa mobil pribadi, elf, atau bus kecil.`,
+          `Cek fasilitas dapur, kulkas, dispenser, serta kelengkapan alat masak dan BBQ bila berencana menyiapkan konsumsi mandiri selama menginap.`,
+          `Konfirmasi jadwal check-in, kebijakan ketertiban lingkungan pada malam hari, dan ketersediaan tanggal secara langsung kepada admin villa.web.id.`,
+        ],
+        faqs: [
+          {
+            q: `Berapa kisaran harga ${keyword.toLowerCase()} di Puncak?`,
+            a: `Untuk kategori ${keyword.toLowerCase()}, tarif sewa berkisar ${priceText} tergantung hari menginap (weekday/weekend) dan fasilitas masing-masing villa.`,
+          },
+          {
+            q: `Apakah villa kapasitas ${cap} orang boleh mengadakan acara kumpul atau BBQ?`,
+            a: `Boleh, sebagian besar villa sudah dilengkapi ruang keluarga luas, teras/halaman, dan area BBQ selama tetap menjaga ketertiban lingkungan sekitar.`,
+          },
+          {
+            q: `Bagaimana cara cek jadwal kosong untuk ${keyword.toLowerCase()}?`,
+            a: `Klik tombol Lihat Detail pada unit yang Anda minati, lalu tekan Booking via WA untuk pengecekan tanggal secara real-time.`,
+          },
+        ],
+        villas: matched,
+      });
+    }
+  }
+
+  // 2. SEMUA VARIASI JUMLAH KAMAR TIDUR
+  const roomCounts = Array.from(
+    new Set(allVillas.map((v) => v.jumlah_kamar).filter((k) => Number.isFinite(k) && k > 0))
+  ).sort((a, b) => a - b);
+
+  for (const rooms of roomCounts) {
+    const matched = allVillas.filter((v) => v.jumlah_kamar === rooms);
+    if (matched.length > 0) {
+      const keyword = `Sewa Villa ${rooms} Kamar Tidur di Puncak`;
+      const priceText = getPriceRangeText(matched);
+      const minGuest = Math.min(...matched.map((v) => v.kapasitas_maks || 0));
+      const maxGuest = Math.max(...matched.map((v) => v.kapasitas_maks || 0));
+      addPage({
+        slug: `sewa-villa-${rooms}-kamar-tidur-di-puncak`,
+        category: "Kamar Tidur",
+        keyword,
+        title: `${keyword} — ${matched.length} Pilihan Unit `,
+        metaDescription: `Daftar ${keyword.toLowerCase()} dengan kapasitas ${minGuest}–${maxGuest} tamu dan harga ${priceText}. Lihat galeri foto dan fasilitas lengkap.`,
+        heroSubtitle: `Temukan ${matched.length} unit villa ${rooms} kamar tidur di Puncak & Cipanas untuk kapasitas ${minGuest} sampai ${maxGuest} tamu (${priceText}).`,
+        articleTitle: `Keunggulan & Panduan Memilih ${keyword}`,
+        articleParagraphs: [
+          `Memilih ${keyword.toLowerCase()} memberikan struktur pembagian ruang istirahat yang lebih rapi dan privat bagi keluarga maupun rombongan. Dibandingkan menginap di hunian dengan kamar terbatas lalu mengandalkan area terbuka untuk tidur, jumlah kamar yang sesuai membantu menjaga kualitas tidur setiap tamu setelah seharian beraktivitas di udara sejuk Puncak.`,
+          `Saat ini tersedia ${matched.length} unit villa dengan ${rooms} kamar tidur yang dapat dibandingkan melalui villa.web.id dengan kapasitas tampung mulai dari ${minGuest} hingga ${maxGuest} orang dan kisaran tarif ${priceText}. Perbedaan kapasitas dalam jumlah kamar yang sama biasanya dipengaruhi oleh ukuran kamar, jenis ranjang, penambahan extra bed, serta luas ruang komunal di dalam villa.`,
+          `Selain jumlah kamar, perhatikan juga bagaimana alur aktivitas harian berlangsung di dalam unit. Jika sebagian besar waktu dihabiskan di dalam rumah, pertimbangkan villa yang memiliki ruang tamu terhubung ke teras atau taman serta fasilitas hiburan seperti karaoke, meja biliar, atau kolam renang pribadi. Jika agenda utama adalah menjelajah wisata dan kuliner sekitar, fokuslah pada lokasi strategis, akses parkir, dan kelengkapan fasilitas dasar seperti air panas dan dapur.`,
+        ],
+        tipsList: [
+          `Bandingkan kapasitas maksimal tiap villa ${rooms} kamar karena ukuran bangunan, konfigurasi ranjang, dan jumlah kamar mandi antarunit bisa berbeda.`,
+          `Pilih unit dengan fasilitas tambahan seperti private pool, karaoke, atau meja biliar bila ingin suasana menginap lebih variatif saat cuaca berkabut atau hujan.`,
+          `Pastikan kebutuhan water heater dan perlengkapan dapur sudah sesuai dengan kebiasaan keluarga atau rombongan Anda.`,
+          `Lakukan pemesanan lebih awal untuk jadwal akhir pekan, long weekend, dan musim liburan karena unit ${rooms} kamar tergolong cepat terisi.`,
+        ],
+        faqs: [
+          {
+            q: `Villa ${rooms} kamar tidur di Puncak muat untuk berapa orang?`,
+            a: `Unit ${rooms} kamar tidur yang tersedia mampu menampung mulai dari ${minGuest} hingga ${maxGuest} tamu tergantung ukuran kamar dan ketersediaan tempat tidur.`,
+          },
+          {
+            q: `Berapa harga sewa villa ${rooms} kamar tidur per malam?`,
+            a: `Harga sewa untuk kategori ${rooms} kamar tidur berkisar ${priceText}.`,
+          },
+          {
+            q: `Apakah fasilitas dapur dan water heater sudah tersedia?`,
+            a: `Sebagian besar unit telah dilengkapi dapur lengkap beserta peralatan masak dan pemanas air (water heater). Anda bisa mengecek rinciannya pada halaman detail villa.`,
+          },
+        ],
+        villas: matched,
+      });
+    }
+  }
+
+  // 3. SEMUA LOKASI UNIK DARI datavilla.json
+  const uniqueLocations = Array.from(
+    new Set(allVillas.map((v) => v.location?.trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, "id"));
+
+  for (const loc of uniqueLocations) {
+    const matched = allVillas.filter(
+      (v) => (v.location || "").trim().toLowerCase() === loc.toLowerCase()
+    );
+    if (matched.length > 0) {
+      const locSlug = toSlug(loc);
+      const keyword = `Sewa Villa ${loc}`;
+      const priceText = getPriceRangeText(matched);
+      addPage({
+        slug: `sewa-villa-${locSlug}`,
+        category: "Lokasi",
+        keyword,
+        title: `${keyword} — Pilihan Villa Terbaik & Harga Terbaru `,
+        metaDescription: `Cari ${keyword.toLowerCase()}? Tersedia ${matched.length} villa pilihan di ${loc} dengan harga ${priceText}. Lengkap dengan foto, fasilitas & info wisata terdekat.`,
+        heroSubtitle: `Katalog lengkap ${matched.length} villa pilihan di area ${loc} dengan suasana sejuk, akses strategis, dan tarif ${priceText}.`,
+        articleTitle: `Rekomendasi & Panduan Lengkap ${keyword}`,
+        articleParagraphs: [
+          `Kawasan ${loc} merupakan salah satu pilihan populer bagi wisatawan yang menginginkan udara pegunungan yang segar sekaligus jarak tempuh yang masuk akal menuju berbagai titik wisata alam, taman rekreasi, dan pusat kuliner di kawasan Puncak–Cianjur. Karakter lingkungan di tiap area memiliki nuansa tersendiri—mulai dari kawasan kompleks tertata hingga area berbukit dengan panorama alam yang lebih terbuka.`,
+          `Melalui villa.web.id, Anda dapat membandingkan ${matched.length} pilihan unit di ${loc} berdasarkan jumlah kamar tidur, kapasitas tamu, fasilitas unggulan, ulasan pengunjung, serta kisaran harga ${priceText}. Memilih lokasi yang selaras dengan rencana perjalanan akan membantu menghemat waktu tempuh dan mengurangi kelelahan di perjalanan.`,
+          `Sebelum memutuskan unit mana yang paling pas, pertimbangkan pola perjalanan rombongan Anda. Bila ingin lebih banyak bersantai di dalam villa menikmati hawa dingin dan pemandangan, perhatikan fitur seperti halaman luas, balkon/teras, atau private pool. Bila agenda perjalanan banyak diisi wisata kuliner dan jalan-jalan sekitar, cek informasi wisata dan restoran terdekat pada halaman detail masing-masing villa di ${loc}.`,
+        ],
+        tipsList: [
+          `Manfaatkan informasi wisata terdekat dan restoran terdekat di detail masing-masing villa area ${loc} untuk menyusun rute perjalanan yang efisien.`,
+          `Atur waktu keberangkatan menuju ${loc} dengan memperhitungkan kepadatan arus lalu lintas akhir pekan maupun hari libur.`,
+          `Perhatikan kondisi akses jalan dan fasilitas parkir unit di ${loc} sesuai jenis kendaraan yang digunakan.`,
+          `Hubungi admin villa.web.id jika membutuhkan rekomendasi unit spesifik di ${loc} atau arahan menuju lokasi villa.`,
+        ],
+        faqs: [
+          {
+            q: `Ada berapa pilihan villa di ${loc}?`,
+            a: `Saat ini tersedia ${matched.length} pilihan villa di kawasan ${loc} yang bisa langsung Anda lihat foto dan spesifikasinya di halaman ini.`,
+          },
+          {
+            q: `Berapa tarif menginap di villa area ${loc}?`,
+            a: `Tarif sewa villa di ${loc} berkisar ${priceText} per malam.`,
+          },
+          {
+            q: `Apakah tersedia villa dengan kolam renang pribadi di ${loc}?`,
+            a: `Ya, Anda bisa melihat label fasilitas unggulan pada setiap kartu villa atau membuka rincian fasilitas lewat halaman detail villa.`,
+          },
+        ],
+        villas: matched,
+      });
+    }
+  }
+
+  // 4. SEMUA KATEGORI FASILITAS & FITUR UNGGULAN
+  const featureConfigs: Array<{
+    slug: string;
+    keyword: string;
+    heroSubtitle: string;
+    articleTitle: string;
+    articleParagraphs: string[];
+    tipsList: string[];
+    faqs: FaqItem[];
+    filter: (v: Villa) => boolean;
+  }> = [
+    {
+      slug: "sewa-villa-di-puncak-ada-kolam-renang",
+      keyword: "Sewa Villa di Puncak Ada Kolam Renang",
+      heroSubtitle:
+        "Pilihan villa di Puncak, Cipanas, dan Kota Bunga yang dilengkapi kolam renang pribadi (private pool) untuk keluarga maupun rombongan.",
+      articleTitle: "Panduan Lengkap Memilih Sewa Villa di Puncak Ada Kolam Renang",
+      articleParagraphs: [
+        "Villa dengan kolam renang pribadi (private pool) menjadi favorit banyak keluarga dan rombongan karena menawarkan privasi penuh tanpa harus berbagi area kolam dengan tamu lain. Anak-anak maupun anggota keluarga dapat berenang atau bermain air dengan lebih santai sesuai waktu luang masing-masing.",
+        "Di kawasan berhawa sejuk seperti Puncak dan Cipanas, memilih villa berkolam renang pribadi juga menuntut ketelitian pada aspek keamanan dan kenyamanan. Kedalaman kolam, permukaan lantai sekitar kolam yang tidak licin, serta pengawasan orang dewasa sangat berpengaruh agar aktivitas air tetap aman bagi anak-anak.",
+        "Selain itu, sesuaikan pilihan unit dengan kebutuhan menginap secara keseluruhan—apakah Anda juga membutuhkan halaman luas, ruang keluarga lega, fasilitas BBQ, atau hiburan tambahan seperti karaoke. Dengan membandingkan spesifikasi tiap unit di halaman ini, Anda bisa menemukan villa private pool yang paling sesuai dengan anggaran dan jumlah peserta.",
+      ],
+      tipsList: [
+        "Perhatikan kedalaman kolam dan pastikan anak-anak selalu berada dalam pengawasan orang dewasa saat berada di dekat area air.",
+        "Siapkan pakaian renang, handuk tambahan, serta jaket atau baju hangat karena udara pegunungan terasa cukup sejuk setelah berenang.",
+        "Tanyakan informasi perawatan dan kondisi kolam sebelum hari kedatangan agar pengalaman menginap lebih maksimal.",
+        "Lakukan reservasi lebih awal terutama pada akhir pekan dan musim liburan karena unit private pool memiliki peminat tinggi.",
+      ],
+      faqs: [
+        {
+          q: "Apakah kolam renangnya bersifat private pool?",
+          a: "Ya, seluruh villa dalam daftar ini memiliki fasilitas kolam renang pribadi khusus untuk penyewa unit villa tersebut.",
+        },
+        {
+          q: "Apakah tersedia villa kolam renang untuk rombongan besar?",
+          a: "Tersedia berbagai pilihan kapasitas mulai dari keluarga kecil hingga rombongan puluhan orang.",
+        },
+      ],
+      filter: (v) => Boolean(v.private_pool),
+    },
+    {
+      slug: "sewa-villa-puncak-view-gunung",
+      keyword: "Sewa Villa Puncak View Gunung",
+      heroSubtitle:
+        "Nikmati panorama perbukitan dan pegunungan langsung dari teras, balkon, maupun ruang santai villa Anda.",
+      articleTitle: "Keunggulan & Panduan Memilih Sewa Villa Puncak View Gunung",
+      articleParagraphs: [
+        "Salah satu alasan utama wisatawan memilih berlibur ke kawasan Puncak adalah kesempatan menikmati lanskap perbukitan, lembah hijau, dan siluet pegunungan yang menenangkan. Menginap di villa dengan view gunung menghadirkan nuansa relaksasi yang terasa sejak pagi hari saat membuka tirai kamar atau menyeruput kopi hangat di teras.",
+        "Kejelasan pemandangan alam di dataran tinggi sangat dipengaruhi oleh waktu hari dan kondisi cuaca. Pagi hari sering kali menyuguhkan udara paling jernih sebelum kabut atau awan turun menutupi lereng perbukitan pada siang hingga sore hari.",
+        "Saat memilih villa view gunung, perhatikan juga tata letak area santai seperti balkon, teras, atau halaman menghadap pemandangan, serta kelengkapan fasilitas penghangat dan kenyamanan ruang seperti air panas (water heater) dan ruang keluarga yang nyaman untuk berkumpul.",
+      ],
+      tipsList: [
+        "Luangkan waktu pada pagi hari (sekitar pukul 06.00–08.00 WIB) untuk menikmati panorama gunung dan udara segar sebelum kabut turun.",
+        "Bawa pakaian hangat, kaus kaki, dan selimut tambahan bila Anda mudah merasa dingin saat duduk di balkon atau teras malam hari.",
+        "Cek posisi kamar dan area kumpul pada foto galeri villa untuk memastikan sudut pandang sesuai ekspektasi.",
+      ],
+      faqs: [
+        {
+          q: "Apakah semua villa di halaman ini memiliki pemandangan gunung?",
+          a: "Ya, daftar ini dikurasi khusus untuk unit villa yang memiliki keunggulan view gunung atau panorama alam terbuka.",
+        },
+        {
+          q: "Bagaimana cara memesan villa view gunung ini?",
+          a: "Pilih villa yang disukai, klik Lihat Detail, lalu hubungi admin via WhatsApp untuk konfirmasi tanggal.",
+        },
+      ],
+      filter: (v) => Boolean(v.view_gunung),
+    },
+    {
+      slug: "sewa-villa-puncak-halaman-luas",
+      keyword: "Sewa Villa Puncak Halaman Luas",
+      heroSubtitle:
+        "Rekomendasi villa dengan halaman dan taman luas untuk kegiatan outdoor, fun games, anak-anak, maupun acara keluarga.",
+      articleTitle: "Manfaat & Panduan Memilih Villa dengan Halaman Luas di Puncak",
+      articleParagraphs: [
+        "Villa dengan halaman atau taman yang luas memberikan keleluasaan ruang yang sulit ditemukan pada akomodasi standar. Bagi keluarga yang membawa anak-anak, area terbuka ini menjadi ruang bermain alami yang lebih bebas dan menyegarkan dibanding hanya beraktivitas di dalam ruangan.",
+        "Untuk rombongan keluarga besar, komunitas, atau acara kumpul perusahaan, halaman luas juga mempermudah penyusunan berbagai kegiatan seperti senam pagi, fun games ringan, sesi foto bersama, maupun acara bakar-bakar (BBQ) saat sore menjelang malam.",
+        "Ketika memilih villa berhalaman luas, sesuaikan luas area dengan jumlah peserta serta jenis kegiatan yang direncanakan. Pastikan pula Anda berkoordinasi mengenai aturan penggunaan area taman dan ketertiban lingkungan agar kenyamanan bersama tetap terjaga.",
+      ],
+      tipsList: [
+        "Informasikan rencana kegiatan outdoor, games kelompok, atau pemasangan perlengkapan tambahan sejak awal agar sesuai dengan kapasitas area dan aturan villa.",
+        "Manfaatkan area taman pada sore hari untuk santai bersama atau BBQ keluarga sebelum suhu malam semakin turun.",
+        "Gunakan alas kaki yang nyaman dan antiselip terutama bila rumput atau paving halaman lembap akibat embun atau hujan.",
+      ],
+      faqs: [
+        {
+          q: "Apakah villa halaman luas cocok untuk gathering kantor atau keluarga besar?",
+          a: "Sangat cocok karena area terbuka memudahkan aktivitas bersama tanpa terasa sesak.",
+        },
+      ],
+      filter: (v) => Boolean(v.halaman_luas),
+    },
+    {
+      slug: "sewa-villa-puncak-ada-karaoke",
+      keyword: "Sewa Villa Puncak Ada Karaoke",
+      heroSubtitle:
+        "Pilihan villa di Puncak dengan fasilitas karaoke untuk memeriahkan suasana malam kebersamaan keluarga dan teman.",
+      articleTitle: "Panduan Memilih Villa Puncak dengan Fasilitas Karaoke",
+      articleParagraphs: [
+        "Udara malam di kawasan Puncak yang sejuk sering membuat tamu memilih bertahan di dalam villa setelah makan malam. Fasilitas karaoke menjadi pelengkap praktis untuk mencairkan suasana, membangun keakraban antaranggota keluarga atau rekan satu rombongan, dan mengisi waktu luang tanpa harus keluar lokasi.",
+        "Agar pengalaman bernyanyi berlangsung nyaman, perhatikan penempatan ruang hiburan terhadap kamar tidur—terutama jika ada tamu yang ingin beristirahat lebih awal—serta kelengkapan perangkat audio yang tersedia di unit.",
+        "Menjaga etika suara dan mengikuti batas jam operasional audio sesuai ketentuan kawasan hunian juga penting agar suasana sekitar tetap kondusif bagi seluruh tamu dan warga sekitar.",
+      ],
+      tipsList: [
+        "Perhatikan kesepakatan batas waktu penggunaan sound system pada malam hari demi menjaga kenyamanan tamu lain dan lingkungan sekitar.",
+        "Periksa kondisi mikrofon, speaker, dan sistem pemutar lagu saat proses check-in agar dapat digunakan dengan lancar.",
+        "Atur volume secara proporsional bila di dalam rombongan terdapat anak kecil atau anggota keluarga yang tidur lebih awal.",
+      ],
+      faqs: [
+        {
+          q: "Apakah fasilitas karaoke sudah termasuk dalam harga sewa villa?",
+          a: "Ya, fasilitas karaoke yang tercantum sudah termasuk dalam penggunaan unit villa.",
+        },
+      ],
+      filter: (v) => Boolean(v.karaoke),
+    },
+    {
+      slug: "sewa-villa-puncak-ada-meja-biliar",
+      keyword: "Sewa Villa Puncak Ada Meja Biliar",
+      heroSubtitle:
+        "Daftar villa di Puncak yang dilengkapi fasilitas meja biliar sebagai hiburan seru selama menginap.",
+      articleTitle: "Panduan Memilih Villa Puncak dengan Meja Biliar untuk Rombongan",
+      articleParagraphs: [
+        "Fasilitas meja biliar di dalam villa memberikan alternatif hiburan santai yang seru untuk dimainkan bergantian oleh keluarga, sahabat, maupun peserta gathering. Saat cuaca di luar sedang hujan atau berkabut, aktivitas di dalam ruangan tetap terasa hidup dan interaktif.",
+        "Ketika membandingkan unit dengan fasilitas biliar, cek ruang gerak di sekeliling meja pada foto galeri agar permainan tetap nyaman, serta perhatikan kapasitas kamar dan fasilitas pendukung lain seperti ruang keluarga, dapur, atau area BBQ.",
+        "Merawat perlengkapan permainan bersama-sama selama masa sewa membantu menjaga kualitas fasilitas tetap prima untuk seluruh tamu yang menginap.",
+      ],
+      tipsList: [
+        "Gunakan stik, bola, dan permukaan meja biliar dengan hati-hati serta hindari meletakkan minuman atau benda berat di atas meja.",
+        "Sesuaikan pilihan unit dengan jumlah kamar tidur dan kapasitas tamu agar seluruh rombongan tetap nyaman di luar waktu bermain.",
+      ],
+      faqs: [
+        {
+          q: "Apakah penggunaan meja biliar dikenakan biaya tambahan?",
+          a: "Tidak, fasilitas meja biliar sudah termasuk dalam paket sewa unit villa.",
+        },
+      ],
+      filter: (v) => Boolean(v.meja_biliar),
+    },
+    {
+      slug: "sewa-villa-pet-friendly-di-puncak",
+      keyword: "Sewa Villa Pet Friendly di Puncak",
+      heroSubtitle:
+        "Pilihan villa ramah hewan peliharaan (pet friendly) di kawasan Puncak dan Cipanas untuk liburan bersama anabul kesayangan.",
+      articleTitle: "Panduan Lengkap Menginap di Villa Pet Friendly Puncak",
+      articleParagraphs: [
+        "Bagi pencinta hewan peliharaan, meninggalkan hewan kesayangan di rumah atau penitipan saat berlibur sering kali menimbulkan kekhawatiran. Memilih villa yang pet friendly memungkinkan Anda berlibur bersama hewan peliharaan dengan lebih tenang dalam suasana udara pegunungan yang sejuk.",
+        "Meskipun ramah hewan peliharaan, setiap properti memiliki ketentuan tersendiri terkait jenis, ukuran, jumlah hewan, serta area yang boleh diakses. Oleh karena itu, komunikasi yang jelas sejak awal sangat membantu menghindari kendala saat tiba di lokasi.",
+        "Menjaga kebersihan ruangan, bulu rontok, dan area halaman selama menginap merupakan kunci utama agar pengalaman liburan bersama anabul tetap menyenangkan dan saling menghormati.",
+      ],
+      tipsList: [
+        "Bawa perlengkapan pribadi hewan peliharaan seperti tempat makan/minum, alas tidur, tali tuntun, dan kantong pembersih kotoran.",
+        "Informasikan jenis, ras/ukuran, dan jumlah hewan peliharaan kepada admin villa.web.id sebelum melakukan pemesanan.",
+        "Pastikan hewan peliharaan tetap terpantau terutama di area halaman terbuka, akses keluar gerbang, atau sekitar kolam bila tersedia.",
+      ],
+      faqs: [
+        {
+          q: "Apakah semua jenis hewan peliharaan diperbolehkan?",
+          a: "Silakan konfirmasi jenis dan ukuran hewan peliharaan Anda melalui WhatsApp sebelum booking agar sesuai dengan ketentuan pemilik villa.",
+        },
+      ],
+      filter: (v) => Boolean(v.pet_friendly),
+    },
+    {
+      slug: "sewa-villa-mewah-di-puncak",
+      keyword: "Sewa Villa Mewah di Puncak",
+      heroSubtitle:
+        "Koleksi villa mewah dan eksklusif di Puncak dengan interior elegan, fasilitas lengkap, dan kenyamanan maksimal.",
+      articleTitle: "Panduan Memilih Villa Mewah & Eksklusif di Kawasan Puncak",
+      articleParagraphs: [
+        "Kategori villa mewah di Puncak ditujukan bagi tamu yang mengutamakan kenyamanan ruang yang lebih lega, penataan interior yang lebih berkelas, serta kelengkapan fasilitas dalam satu hunian. Pilihan ini sering diminati untuk liburan keluarga istimewa, perayaan momen khusus, maupun gathering eksekutif.",
+        "Nilai sebuah villa mewah tidak hanya terlihat dari tampilan bangunan, tetapi juga dari keterpaduan antara tata ruang kamar, area berkumpul, fasilitas rekreasi, dan kemudahan akses di dalamnya. Membandingkan detail foto dan spesifikasi tiap unit membantu memastikan fasilitas yang ditawarkan benar-benar sesuai kebutuhan Anda.",
+        "Karena jumlah unit dengan standar fasilitas premium relatif terbatas, merencanakan jadwal dan melakukan konfirmasi ketersediaan lebih awal sangat dianjurkan.",
+      ],
+      tipsList: [
+        "Pesan lebih awal terutama pada akhir pekan panjang, libur sekolah, atau akhir tahun karena unit dengan fasilitas lengkap cepat penuh.",
+        "Cocokkan fasilitas unggulan pada unit—seperti private pool, ruang tamu luas, karaoke, atau biliar—dengan prioritas utama rombongan Anda.",
+      ],
+      faqs: [
+        {
+          q: "Fasilitas apa saja yang umumnya ada di villa mewah Puncak?",
+          a: "Umumnya meliputi private pool, ruang keluarga luas, dapur modern, kamar tidur nyaman, serta hiburan seperti karaoke atau biliar.",
+        },
+      ],
+      filter: (v) => Boolean(v.mewah),
+    },
+    {
+      slug: "sewa-villa-desain-klasik-di-puncak",
+      keyword: "Sewa Villa Desain Klasik di Puncak",
+      heroSubtitle:
+        "Pilihan villa bergaya klasik, hangat, dan estetik di kawasan Puncak dan Kota Bunga.",
+      articleTitle: "Daya Tarik & Panduan Memilih Villa Desain Klasik di Puncak",
+      articleParagraphs: [
+        "Villa bergaya klasik menghadirkan karakter visual yang hangat dan berkesan, berpadu serasi dengan hawa sejuk dan nuansa hijau di kawasan Puncak. Detail arsitektur dan tata ruangnya kerap menciptakan suasana rumah yang akrab serta spot foto menarik untuk dokumentasi liburan keluarga.",
+        "Saat memilih villa berdesain klasik, perhatikan juga kesesuaian jumlah kamar tidur, kapasitas tamu, dan fasilitas modern penunjang kenyamanan seperti air panas, area dapur, serta ruang kumpul keluarga.",
+        "Lihat galeri foto pada masing-masing unit untuk menilai pencahayaan ruangan, tata letak kamar, dan suasana keseluruhan sebelum menentukan pilihan.",
+      ],
+      tipsList: [
+        "Manfaatkan cahaya alami pada pagi dan sore hari di area teras maupun fasad villa untuk mengabadikan momen bersama keluarga.",
+        "Cek spesifikasi jumlah kamar dan kapasitas maksimal pada kartu villa agar sesuai dengan jumlah rombongan.",
+      ],
+      faqs: [
+        {
+          q: "Di area mana saja villa desain klasik banyak ditemukan?",
+          a: "Banyak tersedia di kawasan Kota Bunga, Cipanas, dan sekitarnya.",
+        },
+      ],
+      filter: (v) => Boolean(v.desain_klasik),
+    },
+  ];
+
+  for (const feat of featureConfigs) {
+    const matched = allVillas.filter(feat.filter);
+    if (matched.length > 0) {
+      const priceText = getPriceRangeText(matched);
+      addPage({
+        slug: feat.slug,
+        category: "Fasilitas",
+        keyword: feat.keyword,
+        title: `${feat.keyword} (${matched.length} Pilihan) — villa.web.id`,
+        metaDescription: `${feat.keyword} dengan ${matched.length} pilihan unit terbaik (${priceText}). Lihat foto, detail fasilitas, artikel panduan & FAQ.`,
+        heroSubtitle: feat.heroSubtitle,
+        articleTitle: feat.articleTitle,
+        articleParagraphs: feat.articleParagraphs,
+        tipsList: feat.tipsList,
+        faqs: feat.faqs,
+        villas: matched,
+      });
+    }
+  }
+
+  // 4B. SEMUA VARIASI HARGA (TANPA KOMBINASI LOKASI)
+  const priceTiers: Array<{
+    slug: string;
+    label: string;
+    min: number;
+    max: number;
+  }> = [
+    { slug: "sewa-villa-harga-di-bawah-1-juta", label: "Di Bawah 1 Juta", min: 1, max: 999_999 },
+    { slug: "sewa-villa-harga-1-juta", label: "1 Jutaan", min: 1_000_000, max: 1_999_999 },
+    { slug: "sewa-villa-harga-2-juta", label: "2 Jutaan", min: 2_000_000, max: 2_999_999 },
+    { slug: "sewa-villa-harga-3-juta", label: "3 Jutaan", min: 3_000_000, max: 3_999_999 },
+    { slug: "sewa-villa-harga-4-juta", label: "4 Jutaan", min: 4_000_000, max: 4_999_999 },
+    { slug: "sewa-villa-harga-5-juta", label: "5 Jutaan", min: 5_000_000, max: 5_999_999 },
+    { slug: "sewa-villa-harga-6-juta", label: "6 Jutaan", min: 6_000_000, max: 6_999_999 },
+    { slug: "sewa-villa-harga-7-juta", label: "7 Jutaan", min: 7_000_000, max: 7_999_999 },
+    { slug: "sewa-villa-harga-8-juta", label: "8 Jutaan", min: 8_000_000, max: 8_999_999 },
+    { slug: "sewa-villa-harga-9-juta", label: "9 Jutaan", min: 9_000_000, max: 9_999_999 },
+    { slug: "sewa-villa-harga-10-juta", label: "10 Jutaan", min: 10_000_000, max: 10_999_999 },
+  ];
+
+  for (const tier of priceTiers) {
+    const matched = allVillas.filter(
+      (v) =>
+        Number.isFinite(v.price_per_night) &&
+        v.price_per_night >= tier.min &&
+        v.price_per_night <= tier.max
+    );
+    if (matched.length > 0) {
+      const keyword = `Sewa Villa Puncak Harga ${tier.label}`;
+      const priceText = getPriceRangeText(matched);
+      addPage({
+        slug: tier.slug,
+        category: "Harga",
+        keyword,
+        title: `${keyword} — ${matched.length} Pilihan Unit `,
+        metaDescription: `Pilihan ${keyword.toLowerCase()} dengan ${matched.length} unit terbaik (${priceText}). Lihat galeri foto, kapasitas tamu, fasilitas & booking WA.`,
+        heroSubtitle: `Tersedia ${matched.length} pilihan villa di kawasan Puncak & Cipanas dengan kisaran tarif ${tier.label.toLowerCase()} (${priceText}).`,
+        articleTitle: `Panduan Memilih ${keyword} Sesuai Kebutuhan Liburan`,
+        articleParagraphs: [
+          `Mencari ${keyword.toLowerCase()} membantu Anda mengelola anggaran perjalanan secara lebih terukur tanpa mengorbankan esensi liburan bersama keluarga atau rombongan. Pada rentang harga ${priceText}, tersedia ${matched.length} pilihan unit yang bisa Anda telaah sesuai prioritas utama perjalanan.`,
+          `Dalam satu rentang harga, tiap villa dapat menawarkan kombinasi spesifikasi yang berbeda—seperti jumlah kamar tidur, batas kapasitas tamu, lokasi di area Puncak/Cipanas, serta fasilitas tambahan. Karena itu, membandingkan nilai manfaat (value for money) jauh lebih penting daripada sekadar melihat angka tarif per malam.`,
+          `Selain tarif sewa unit, sisihkan juga cadangan anggaran untuk kebutuhan operasional selama menginap seperti bahan makanan/BBQ, transportasi, tiket wisata, maupun biaya tambahan bila diperlukan. Dengan perencanaan yang jelas sejak awal, liburan dapat dinikmati dengan lebih tenang.`,
+        ],
+        tipsList: [
+          `Cek perbedaan harga antara hari biasa (weekday), akhir pekan (weekend), dan hari libur nasional sebelum mengunci tanggal.`,
+          `Bandingkan jumlah kamar tidur, kapasitas maksimal tamu, dan fasilitas unggulan pada tiap kartu villa di rentang harga ini.`,
+          `Siapkan 1–2 opsi cadangan villa yang sepadan agar proses pemilihan tetap fleksibel bila tanggal pilihan utama sedang penuh.`,
+          `Klik Lihat Detail lalu hubungi admin via WhatsApp untuk konfirmasi harga terbaru dan ketersediaan jadwal.`,
+        ],
+        faqs: [
+          {
+            q: `Ada berapa pilihan ${keyword.toLowerCase()}?`,
+            a: `Saat ini tersedia ${matched.length} unit villa dengan kisaran tarif ${priceText}.`,
+          },
+          {
+            q: `Apakah tarif ${tier.label.toLowerCase()} sudah termasuk fasilitas di dalam villa?`,
+            a: `Ya, fasilitas standar seperti dapur, ruang keluarga, dan fasilitas unggulan yang tercantum di detail unit sudah termasuk dalam harga sewa.`,
+          },
+          {
+            q: `Bagaimana cara booking ${keyword.toLowerCase()}?`,
+            a: `Pilih villa yang Anda inginkan, klik Lihat Detail, lalu hubungi admin via WhatsApp.`,
+          },
+        ],
+        villas: matched,
+      });
+    }
+  }
+
+  // 5. KOMBINASI LOKASI + FASILITAS / KAMAR (TANPA KOMBINASI HARGA)
+  for (const loc of uniqueLocations) {
+    const locSlug = toSlug(loc);
+    const locVillas = allVillas.filter(
+      (v) => (v.location || "").trim().toLowerCase() === loc.toLowerCase()
+    );
+
+    const locPool = locVillas.filter((v) => Boolean(v.private_pool));
+    if (locPool.length > 0) {
+      const keyword = `Sewa Villa ${loc} Ada Kolam Renang`;
+      const priceText = getPriceRangeText(locPool);
+      addPage({
+        slug: `sewa-villa-${locSlug}-ada-kolam-renang`,
+        category: "Kombinasi",
+        keyword,
+        title: `${keyword} — Private Pool di ${loc} `,
+        metaDescription: `Temukan ${locPool.length} pilihan ${keyword.toLowerCase()} dengan private pool dan tarif ${priceText}. Cek galeri foto & booking cepat via WA.`,
+        heroSubtitle: `Tersedia ${locPool.length} unit villa berkolam renang pribadi (private pool) di area ${loc} dengan tarif ${priceText}.`,
+        articleTitle: `Panduan Memilih ${keyword} untuk Liburan Keluarga`,
+        articleParagraphs: [
+          `Menginap di ${loc} sambil menikmati fasilitas kolam renang pribadi memberi perpaduan antara suasana kawasan yang spesifik dan privasi area berenang khusus untuk tamu unit Anda. Keluarga atau rombongan dapat mengatur waktu bersantai dan bermain air tanpa terganggu antrean kolam umum.`,
+          `Tersedia ${locPool.length} pilihan villa private pool di ${loc} dengan kisaran harga ${priceText}. Tiap unit memiliki ukuran kolam, jumlah kamar, serta kapasitas tamu yang berbeda, sehingga sebaiknya Anda meninjau galeri foto dan detail fasilitasnya terlebih dahulu sebelum memilih.`,
+        ],
+        tipsList: [
+          `Periksa kedalaman kolam dan pastikan anak-anak selalu diawasi saat beraktivitas di sekitar kolam renang.`,
+          `Siapkan pakaian renang serta pakaian hangat untuk mengantisipasi suhu udara pegunungan di ${loc}.`,
+          `Pesan lebih awal terutama untuk jadwal akhir pekan atau musim liburan di area ${loc}.`,
+        ],
+        faqs: [
+          {
+            q: `Berapa harga ${keyword.toLowerCase()}?`,
+            a: `Tarif sewa villa kolam renang di ${loc} berkisar ${priceText} per malam.`,
+          },
+        ],
+        villas: locPool,
+      });
+    }
+
+    const locMountain = locVillas.filter((v) => Boolean(v.view_gunung));
+    if (locMountain.length > 0) {
+      const keyword = `Sewa Villa ${loc} View Gunung`;
+      const priceText = getPriceRangeText(locMountain);
+      addPage({
+        slug: `sewa-villa-${locSlug}-view-gunung`,
+        category: "Kombinasi",
+        keyword,
+        title: `${keyword} — Panorama Pegunungan di ${loc} `,
+        metaDescription: `Daftar ${locMountain.length} ${keyword.toLowerCase()} dengan panorama alam terbuka dan harga ${priceText}.`,
+        heroSubtitle: `Nikmati pemandangan pegunungan dan udara sejuk di ${loc} dari ${locMountain.length} villa pilihan (${priceText}).`,
+        articleTitle: `Pilihan & Panduan ${keyword} Terbaik untuk Healing & Keluarga`,
+        articleParagraphs: [
+          `Kawasan ${loc} menawarkan udara pegunungan yang menyegarkan dengan panorama perbukitan dan alam terbuka yang mendukung suasana rehat sejenak dari rutinitas harian. Tersedia ${locMountain.length} unit villa view gunung di ${loc} dengan kisaran tarif ${priceText}.`,
+          `Untuk mendapatkan pengalaman pemandangan terbaik, perhatikan area balkon, teras, atau ruang santai pada galeri foto villa serta luangkan waktu menikmati suasana pagi sebelum kabut atau awan turun.`,
+        ],
+        tipsList: [
+          `Nikmati pemandangan pagi hari dari balkon, teras, atau halaman villa sebelum kabut atau awan menutup pandangan.`,
+          `Siapkan jaket atau pakaian hangat untuk kenyamanan saat bersantai di area terbuka pada pagi dan malam hari.`,
+        ],
+        faqs: [
+          {
+            q: `Ada berapa unit villa view gunung di ${loc}?`,
+            a: `Tersedia ${locMountain.length} unit villa view gunung di ${loc} dengan kisaran harga ${priceText}.`,
+          },
+        ],
+        villas: locMountain,
+      });
+    }
+
+    const locRoomCounts = Array.from(
+      new Set(locVillas.map((v) => v.jumlah_kamar).filter((k) => Number.isFinite(k) && k > 0))
+    );
+    for (const r of locRoomCounts) {
+      const locRooms = locVillas.filter((v) => v.jumlah_kamar === r);
+      if (locRooms.length > 0) {
+        const keyword = `Sewa Villa ${loc} ${r} Kamar Tidur`;
+        const priceText = getPriceRangeText(locRooms);
+        addPage({
+          slug: `sewa-villa-${locSlug}-${r}-kamar-tidur`,
+          category: "Kombinasi",
+          keyword,
+          title: `${keyword} — ${locRooms.length} Unit Pilihan `,
+          metaDescription: `Pilihan ${keyword.toLowerCase()} dengan tarif ${priceText}. Lihat foto, kapasitas tamu & fasilitas lengkap.`,
+          heroSubtitle: `Daftar ${locRooms.length} unit villa ${r} kamar tidur di kawasan ${loc} dengan harga ${priceText}.`,
+          articleTitle: `Panduan Lengkap ${keyword} untuk Rombongan & Keluarga`,
+          articleParagraphs: [
+            `Villa ${r} kamar tidur di ${loc} memberikan kejelasan pembagian ruang tidur sekaligus kemudahan akses ke area sekitar ${loc}. Terdapat ${locRooms.length} unit pada kategori ini dengan kisaran harga ${priceText}.`,
+            `Bandingkan kapasitas maksimal tamu, fasilitas unggulan, dan rencana aktivitas rombongan Anda agar pilihan unit di ${loc} terasa paling tepat dan nyaman.`,
+          ],
+          tipsList: [
+            `Sesuaikan kapasitas maksimal tamu dan kebutuhan kamar tidur pada tiap unit ${r} kamar tidur di ${loc}.`,
+            `Cek fasilitas pendukung seperti dapur, air panas, dan ruang berkumpul pada halaman detail villa.`,
+          ],
+          faqs: [
+            {
+              q: `Berapa tarif ${keyword.toLowerCase()}?`,
+              a: `Kisaran harga sewa ${keyword.toLowerCase()} adalah ${priceText} per malam.`,
+            },
+          ],
+          villas: locRooms,
+        });
+      }
+    }
+  }
+
+  const allPages = Array.from(pagesMap.values());
+  const serializedVillaSlugMap = Object.fromEntries(villaSlugMap.entries());
+
+  return allPages.map((page) => ({
+    params: { slug: page.slug },
+    props: {
+      page,
+      villaSlugMap: serializedVillaSlugMap,
+      allPages: allPages.map((p) => ({
+        slug: p.slug,
+        keyword: p.keyword,
+        category: p.category,
+        count: p.villas.length,
+      })),
+    },
+  }));
+}
+
+interface NavPageSummary {
+  slug: string;
+  keyword: string;
+  category: GeneratedPage["category"];
+  count: number;
+}
+
+interface Props {
+  page: GeneratedPage;
+  villaSlugMap: Record<string, string>;
+  allPages: NavPageSummary[];
+}
+
+const { page, villaSlugMap, allPages } = Astro.props;
+const allSourceVillas = (Array.isArray(datavilla) ? datavilla : []) as Villa[];
+
+function getVillaDetailSlug(v: Villa): string {
+  const idx = allSourceVillas.indexOf(v);
+  const key = v.id ? `${v.id}::${idx}` : `idx::${idx}`;
+  if (villaSlugMap[key]) return villaSlugMap[key];
+  const raw = (v.id || v.name || `villa-${idx + 1}`)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return raw || `villa-${idx + 1}`;
+}
+
+const displayVillas = page.villas;
+const ratingCountRandom = randomRatingCount(6500, 15000);
+
+const relatedPages = allPages
+  .filter((p) => p.slug !== page.slug)
+  .sort((a, b) => {
+    if (a.category === page.category && b.category !== page.category) return -1;
+    if (a.category !== page.category && b.category === page.category) return 1;
+    return b.count - a.count;
+  })
+  .slice(0, 14);
+
+// --- LOGIKA MAPPING GAMBAR LOKAL ---
+const localImages = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/villas/**/*.{jpeg,jpg,png,webp}",
+  { eager: true }
+);
+
+function getLocalAsset(cloudinaryUrl?: string): ImageMetadata | null {
+  if (!cloudinaryUrl) return null;
+  try {
+    const parts = cloudinaryUrl.split(/\/v\d+\//);
+    if (parts.length < 2) return null;
+    const fileName = decodeURIComponent(parts[1]);
+    const webpPath = fileName.replace(/\.[^/.]+$/, "") + ".webp";
+    const localPath = `/src/assets/villas/${webpPath}`;
+    const asset = localImages[localPath];
+    return asset ? asset.default : null;
+  } catch {
+    return null;
+  }
+}
+
+const fallbackImage = "https://placehold.co/800x500/e2e8f0/334155?text=Akang+Villa+Puncak";
+const MAX_CARD_PHOTOS = 4;
+const PAGE_SIZE = 10;
+
+function formatRupiah(angka: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(angka);
+}
+
+function getRatingLabel(rating: number): string {
+  if (rating >= 4.8) return "Mengesankan";
+  if (rating >= 4.5) return "Sangat bagus";
+  if (rating >= 4.0) return "Bagus";
+  return "Nyaman";
+}
+
+function resolveSingleUrl(rawUrl?: string): string {
+  if (!rawUrl || !rawUrl.trim()) return fallbackImage;
+  const trimmed = rawUrl.trim();
+  const localAsset = getLocalAsset(trimmed);
+  if (localAsset) return localAsset.src;
+  if (trimmed.startsWith("public/")) {
+    return "/" + trimmed.slice("public/".length);
+  }
+  return trimmed;
+}
+
+function resolveAllGalleryUrls(villa: Villa): string[] {
+  const combined = [villa.main_photo_url, ...(villa.gallery_urls || [])].filter(
+    (u): u is string => Boolean(u && u.trim())
+  );
+  const uniqueRaw = Array.from(new Set(combined)).slice(0, MAX_CARD_PHOTOS);
+  const resolved = uniqueRaw.map((u) => resolveSingleUrl(u));
+  return resolved.length > 0 ? resolved : [fallbackImage];
+}
+
+function resolveVillaGallery(villa: Villa): {
+  mainSrc: string;
+  photos: string[];
+} {
+  const allPhotos = resolveAllGalleryUrls(villa);
+  return {
+    mainSrc: allPhotos[0],
+    photos: allPhotos,
+  };
+}
+
+function normalizeFacilities(rawFasilitas?: string[]): string[] {
+  if (!Array.isArray(rawFasilitas) || rawFasilitas.length === 0) return [];
+  const knownItems = [
+    "Private Pool",
+    "Kolam Renang Pribadi",
+    "WiFi Gratis",
+    "Free WiFi",
+    "Area Parkir",
+    "BBQ",
+    "Area BBQ",
+    "Area Taman/Halaman",
+    "Halaman Luas",
+    "AC",
+    "Water Heater (Pemanas Air)",
+    "Water Heater",
+    "Dapur Lengkap",
+    "Kulkas",
+    "Dispenser Air",
+    "Peralatan Masak",
+    "Peralatan Makan",
+    "TV Layar Datar",
+    "Karaoke",
+    "Meja Biliar",
+    "Biliar",
+    "Set Kursi & Meja Makan",
+    "Sofa Ruang Tamu",
+  ];
+
+  const items: string[] = [];
+  for (const entry of rawFasilitas) {
+    if (!entry) continue;
+    const text = entry.trim();
+    if (text.length > 48) {
+      let matchedAny = false;
+      for (const known of knownItems) {
+        if (text.toLowerCase().includes(known.toLowerCase()) && !items.includes(known)) {
+          items.push(known);
+          matchedAny = true;
+        }
+      }
+      if (!matchedAny) items.push(text);
+    } else if (!items.includes(text)) {
+      items.push(text);
+    }
+  }
+  return items;
+}
+
+function getHighlights(villa: Villa): string[] {
+  const tags: string[] = [];
+  if (villa.private_pool) tags.push("Private Pool");
+  if (villa.view_gunung) tags.push("View Gunung");
+  if (villa.halaman_luas) tags.push("Halaman Luas");
+  if (villa.karaoke) tags.push("Karaoke");
+  if (villa.meja_biliar) tags.push("Biliar");
+  if (villa.pet_friendly) tags.push("Pet Friendly");
+  if (villa.mewah) tags.push("Mewah");
+  if (villa.desain_klasik) tags.push("Desain Klasik");
+  if (tags.length === 0) {
+    return normalizeFacilities(villa.fasilitas).slice(0, 3);
+  }
+  return tags.slice(0, 3);
+}
+
+const siteOrigin = "https://villa.web.id";
+const canonicalUrl = `${siteOrigin}/${page.slug}`;
+
+const validPrices = displayVillas
+  .map((v) => v.price_per_night)
+  .filter((p) => Number.isFinite(p) && p > 0);
+const lowPrice = validPrices.length > 0 ? Math.min(...validPrices) : 850000;
+const highPrice = validPrices.length > 0 ? Math.max(...validPrices) : 5000000;
+const firstVillaPhotoRaw =
+  displayVillas[0] ? resolveVillaGallery(displayVillas[0]).mainSrc : fallbackImage;
+const firstVillaPhoto =
+  firstVillaPhotoRaw && !firstVillaPhotoRaw.startsWith("https://placehold.co")
+    ? new URL(firstVillaPhotoRaw, siteOrigin).toString()
+    : `${siteOrigin}/og-image.jpg`;
+
+const productSchema = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: `${page.keyword} — villa.web.id`,
+  image: firstVillaPhoto,
+  description: page.metaDescription,
+  brand: {
+    "@type": "Brand",
+    name: "villa.web.id",
+  },
+  offers: {
+    "@type": "AggregateOffer",
+    url: canonicalUrl,
+    priceCurrency: "IDR",
+    lowPrice: lowPrice,
+    highPrice: highPrice,
+    offerCount: displayVillas.length,
+    priceValidUntil: "2027-12-31",
+  },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: 4.9,
+    bestRating: 5,
+    worstRating: 1,
+    ratingCount: ratingCountRandom,
+  },
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: page.faqs.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.a,
+    },
+  })),
+};
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{page.title}</title>
+    <meta name="description" content={page.metaDescription} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href={faviconDataUri} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="villa.web.id" />
+    <meta property="og:title" content={page.title} />
+    <meta property="og:description" content={page.metaDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={firstVillaPhoto} />
+    <meta property="og:image:alt" content={page.title} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={page.title} />
+    <meta name="twitter:description" content={page.metaDescription} />
+    <meta name="twitter:image" content={firstVillaPhoto} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+    <style>
+      :root {
+        --tvk-sky: #0194f3;
+        --tvk-blue: #0770cd;
+        --tvk-navy: #0c2c57;
+        --tvk-orange: #ff5e1f;
+        --tvk-orange-dark: #e64d12;
+        --bg: #f4f7fa;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --green: #00875a;
+        --green-bg: #e3fcef;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+      }
+
+      img,
+      svg,
+      video,
+      iframe {
+        max-width: 100%;
+      }
+
+      /* Sticky Header Gaya Traveloka */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+        padding: 13px 20px;
+        transition: box-shadow 0.2s ease;
+      }
+
+      .topbar.is-stuck {
+        box-shadow: 0 6px 20px rgba(7, 112, 205, 0.12);
+      }
+
+      .topbar-inner {
+        max-width: 1180px;
+        width: 100%;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.25rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: var(--tvk-sky);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .brand-logo {
+        width: 34px;
+        height: 34px;
+        display: block;
+        flex-shrink: 0;
+        filter: drop-shadow(0 3px 8px rgba(7, 112, 205, 0.2));
+      }
+
+      .brand-text span {
+        color: var(--tvk-navy);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .topbar-nav a {
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.84rem;
+        font-weight: 600;
+        line-height: 1.3;
+        transition: color 0.15s ease;
+        overflow-wrap: anywhere;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a.is-active {
+        color: var(--tvk-sky);
+      }
+
+      .topbar-badge {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.3;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .menu-toggle-btn {
+        display: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--tvk-navy);
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        line-height: 1;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .menu-toggle-btn:hover {
+        background: #e6f4ff;
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+
+      /* Hero Gaya Traveloka */
+      .hero {
+        width: 100%;
+        background: linear-gradient(135deg, #0770cd 0%, #0194f3 60%, #0c2c57 100%);
+        color: #fff;
+        padding: 28px 20px 44px;
+      }
+
+      .hero-inner {
+        max-width: 1180px;
+        width: 100%;
+        margin: 0 auto;
+        min-width: 0;
+      }
+
+      .breadcrumb {
+        font-size: 0.8rem;
+        color: #bae6fd;
+        margin-bottom: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        overflow-wrap: anywhere;
+      }
+
+      .breadcrumb a {
+        color: #fff;
+        text-decoration: none;
+      }
+
+      .breadcrumb a:hover {
+        text-decoration: underline;
+      }
+
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: clamp(1.35rem, 3vw, 2.1rem);
+        font-weight: 800;
+        line-height: 1.22;
+        overflow-wrap: anywhere;
+      }
+
+      .hero p {
+        margin: 0;
+        color: #e0f2fe;
+        font-size: 0.95rem;
+        max-width: 780px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      /* Related Topic Pills */
+      .topic-nav-wrap {
+        max-width: 1180px;
+        width: 100%;
+        margin: -18px auto 0;
+        padding: 0 20px;
+        position: relative;
+        z-index: 10;
+        min-width: 0;
+      }
+
+      .topic-nav {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px 10px;
+        display: flex;
+        gap: 8px;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        box-shadow: 0 8px 20px rgba(12, 44, 87, 0.08);
+      }
+
+      .topic-nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .topic-pill {
+        flex-shrink: 0;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: var(--text);
+        border: 1px solid var(--border);
+        transition: all 0.15s ease;
+        white-space: nowrap;
+      }
+
+      .topic-pill:hover {
+        border-color: var(--tvk-sky);
+        color: var(--tvk-blue);
+      }
+
+      /* Container */
+      .container {
+        flex: 1 0 auto;
+        width: 100%;
+        max-width: 1180px;
+        margin: 20px auto 0;
+        padding: 0 20px 64px;
+        min-width: 0;
+      }
+
+      .result-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        font-size: 0.9rem;
+        min-width: 0;
+      }
+
+      .result-bar > div:first-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .sort-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.86rem;
+        flex-shrink: 0;
+      }
+
+      .sort-wrap select {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 0.86rem;
+        font-weight: 600;
+        color: var(--text);
+        max-width: 100%;
+      }
+
+      /* List & Kartu Seragam */
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .villa-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr) 220px;
+        height: 238px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+      }
+
+      .villa-card:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 10px 24px rgba(1, 148, 243, 0.1);
+      }
+
+      .villa-media-col {
+        width: 280px;
+        height: 238px;
+        display: flex;
+        flex-direction: column;
+        background: #f1f5f9;
+        border-right: 1px solid var(--border);
+        flex-shrink: 0;
+        min-width: 0;
+      }
+
+      .main-photo-box {
+        position: relative;
+        width: 100%;
+        height: 184px;
+        overflow: hidden;
+        background: #e2e8f0;
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: grab;
+      }
+
+      .main-photo-box.is-dragging {
+        cursor: grabbing;
+      }
+
+      .main-photo-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+        transition: transform 0.18s ease, opacity 0.18s ease;
+      }
+
+      .photo-arrow-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(12, 44, 87, 0.68);
+        color: #fff;
+        font-size: 1.15rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0.9;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+
+      .photo-arrow-btn:hover {
+        background: var(--tvk-sky);
+        opacity: 1;
+        transform: translateY(-50%) scale(1.06);
+      }
+
+      .photo-arrow-btn.prev {
+        left: 7px;
+      }
+
+      .photo-arrow-btn.next {
+        right: 7px;
+      }
+
+      .photo-count-pill {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        z-index: 3;
+        background: rgba(15, 23, 42, 0.76);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 999px;
+        pointer-events: none;
+      }
+
+      .gallery-strip {
+        height: 54px;
+        padding: 5px 6px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 5px;
+        background: #fff;
+        border-top: 1px solid var(--border);
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        touch-action: pan-x;
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+      }
+
+      .gallery-strip::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      .gallery-strip::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+      }
+
+      .thumb-btn {
+        position: relative;
+        flex: 0 0 60px;
+        width: 60px;
+        height: 40px;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        padding: 0;
+        overflow: hidden;
+        cursor: pointer;
+        background: #e2e8f0;
+        opacity: 0.8;
+        user-select: none;
+        -webkit-user-select: none;
+        transition: border-color 0.15s ease, opacity 0.15s ease;
+      }
+
+      .thumb-btn:hover {
+        opacity: 1;
+      }
+
+      .thumb-btn img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        pointer-events: none;
+        -webkit-user-drag: none;
+      }
+
+      .thumb-btn.active {
+        border-color: var(--tvk-sky);
+        opacity: 1;
+      }
+
+      .villa-info {
+        padding: 15px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        border-right: 1px solid var(--border);
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .villa-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .villa-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .villa-title a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .villa-title a:hover {
+        color: var(--tvk-blue);
+      }
+
+      .villa-loc {
+        font-size: 0.84rem;
+        color: var(--muted);
+        margin-top: 2px;
+        overflow-wrap: anywhere;
+      }
+
+      .rating-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        text-align: right;
+      }
+
+      .rating-text {
+        line-height: 1.15;
+      }
+
+      .rating-label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--tvk-blue);
+      }
+
+      .rating-sub {
+        font-size: 0.74rem;
+        color: var(--muted);
+      }
+
+      .rating-badge {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+        border: 1px solid #bae6fd;
+        font-weight: 800;
+        font-size: 0.86rem;
+        padding: 5px 8px;
+        border-radius: 8px;
+      }
+
+      .villa-specs {
+        font-size: 0.85rem;
+        color: var(--text);
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+
+      .villa-desc {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.42;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
+
+      .villa-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: auto;
+      }
+
+      .tag {
+        background: var(--green-bg);
+        color: var(--green);
+        font-size: 0.74rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 6px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .villa-price-col {
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: flex-end;
+        text-align: right;
+        gap: 4px;
+        background: #fafcff;
+        min-width: 0;
+      }
+
+      .price-note {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .price-val {
+        font-size: 1.24rem;
+        font-weight: 900;
+        color: var(--tvk-orange);
+        overflow-wrap: anywhere;
+      }
+
+      .cta-btn {
+        margin-top: 6px;
+        width: 100%;
+        background: var(--tvk-sky);
+        color: #fff;
+        text-decoration: none;
+        text-align: center;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-block;
+        flex-shrink: 0;
+        transition: background 0.15s ease;
+      }
+
+      .cta-btn:hover {
+        background: var(--tvk-blue);
+      }
+
+      /* Paginasi Ringkas */
+      .pagination {
+        margin-top: 24px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        max-width: 100%;
+      }
+
+      .page-btn {
+        background: #fff;
+        border: 1px solid var(--border);
+        color: var(--text);
+        min-width: 38px;
+        height: 38px;
+        padding: 0 11px;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .page-btn.active {
+        background: var(--tvk-sky);
+        border-color: var(--tvk-sky);
+        color: #fff;
+      }
+
+      .page-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .page-ellipsis {
+        padding: 0 4px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      /* Artikel, FAQ & Internal Links */
+      .content-card {
+        margin-top: 26px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px 24px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: clip;
+      }
+
+      .content-card h2 {
+        margin: 0 0 12px;
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--tvk-navy);
+        overflow-wrap: anywhere;
+      }
+
+      .content-card p {
+        margin: 0 0 12px;
+        font-size: 0.94rem;
+        line-height: 1.65;
+        color: #334155;
+        overflow-wrap: anywhere;
+      }
+
+      .tips-list {
+        margin: 8px 0 0;
+        padding-left: 20px;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        color: #334155;
+        overflow-wrap: anywhere;
+      }
+
+      .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .faq-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f8fafc;
+        max-width: 100%;
+      }
+
+      .faq-item summary {
+        list-style: none;
+        padding: 13px 16px;
+        font-weight: 700;
+        font-size: 0.94rem;
+        color: var(--text);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .faq-item summary > span:first-child {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .faq-item summary > span:last-child {
+        flex-shrink: 0;
+      }
+
+      .faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .faq-item[open] summary {
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+      }
+
+      .faq-answer {
+        padding: 12px 16px 14px;
+        background: #fff;
+        font-size: 0.9rem;
+        line-height: 1.58;
+        color: #334155;
+        border-top: 1px solid var(--border);
+        overflow-wrap: anywhere;
+      }
+
+      .related-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-width: 100%;
+      }
+
+      .related-link {
+        text-decoration: none;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        color: var(--tvk-navy);
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 7px 12px;
+        border-radius: 8px;
+        transition: all 0.15s ease;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .related-link:hover {
+        border-color: var(--tvk-sky);
+        background: #e6f4ff;
+        color: var(--tvk-blue);
+      }
+
+      /* Footer Gaya Traveloka */
+      .site-footer {
+        width: 100%;
+        background: var(--tvk-navy);
+        color: #e2e8f0;
+        border-top: 1px solid var(--border);
+        padding: 36px 20px 28px;
+        margin-top: auto;
+        overflow-x: clip;
+      }
+
+      .footer-inner {
+        max-width: 1180px;
+        width: 100%;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        min-width: 0;
+      }
+
+      .footer-inner > div:first-child {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .footer-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #ffffff;
+        margin-bottom: 8px;
+      }
+
+      .footer-logo {
+        width: 28px;
+        height: 28px;
+        display: block;
+        flex-shrink: 0;
+      }
+
+      .footer-brand span {
+        color: #7dd3fc;
+      }
+
+      .footer-copy {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #cbd5e1;
+        max-width: 440px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+        max-width: 100%;
+      }
+
+      .footer-links a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+        overflow-wrap: anywhere;
+      }
+
+      .footer-links a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      .footer-bottom {
+        max-width: 1180px;
+        width: 100%;
+        margin: 24px auto 0;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 900px) {
+        .villa-card {
+          grid-template-columns: 240px minmax(0, 1fr);
+          height: auto;
+        }
+
+        .villa-media-col {
+          width: 240px;
+          height: auto;
+        }
+
+        .main-photo-box {
+          height: 158px;
+        }
+
+        .villa-info {
+          border-right: none;
+        }
+
+        .villa-price-col {
+          grid-column: 1 / -1;
+          border-top: 1px solid var(--border);
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          text-align: left;
+        }
+
+        .cta-btn {
+          width: auto;
+          margin-top: 0;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 11px 12px;
+        }
+
+        .brand {
+          font-size: 1.12rem;
+          gap: 7px;
+        }
+
+        .brand-logo {
+          width: 30px;
+          height: 30px;
+        }
+
+        .topbar-badge {
+          display: none;
+        }
+
+        .menu-toggle-btn {
+          display: inline-flex;
+        }
+
+        .topbar-right {
+          position: static;
+          gap: 0;
+        }
+
+        .topbar-nav {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: #ffffff;
+          border-bottom: 1px solid var(--border);
+          box-shadow: 0 12px 24px rgba(12, 44, 87, 0.12);
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+          padding: 6px 12px 10px;
+        }
+
+        .topbar-nav.is-open {
+          display: flex;
+        }
+
+        .topbar-nav a {
+          padding: 11px 12px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+        }
+
+        .topbar-nav a:hover {
+          background: #f0f9ff;
+        }
+
+        .hero {
+          padding: 22px 12px 36px;
+        }
+
+        .container {
+          padding: 0 12px 48px;
+        }
+
+        .topic-nav-wrap {
+          padding: 0 12px;
+        }
+
+        .villa-card {
+          grid-template-columns: minmax(0, 1fr);
+          height: auto;
+        }
+
+        .villa-media-col {
+          width: 100%;
+          height: auto;
+          border-right: none;
+        }
+
+        .main-photo-box {
+          height: auto;
+          aspect-ratio: 16 / 10;
+        }
+
+        .gallery-strip {
+          height: 58px;
+        }
+
+        .villa-top {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+        }
+
+        .rating-box {
+          justify-content: flex-start;
+          text-align: left;
+        }
+
+        .villa-title {
+          white-space: normal;
+          font-size: 1.05rem;
+          overflow-wrap: anywhere;
+        }
+
+        .villa-price-col {
+          flex-wrap: wrap;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 12px 16px;
+        }
+
+        .price-val {
+          font-size: 1.08rem;
+        }
+
+        .cta-btn {
+          width: auto;
+          padding: 9px 14px;
+        }
+
+        .content-card {
+          padding: 16px;
+        }
+
+        .site-footer {
+          padding: 28px 12px 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="topbar" class="topbar">
+      <div class="topbar-inner">
+        <a href="/" class="brand" aria-label="villa.web.id Beranda">
+          <svg
+            class="brand-logo"
+            viewBox="0 0 64 64"
+            width="34"
+            height="34"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="vw-badge-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#0194f3" />
+                <stop offset="100%" stop-color="#0c2c57" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#vw-badge-bg)" />
+            <path
+              d="M14 33 L32 16 L50 33"
+              fill="none"
+              stroke="#ff5e1f"
+              stroke-width="5.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 31 V44 H43 V31"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="4.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M16 51 Q24 47 32 51 T48 51"
+              fill="none"
+              stroke="#7dd3fc"
+              stroke-width="3.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="brand-text">villa<span>.web.id</span></span>
+        </a>
+        <div class="topbar-right">
+          <nav id="topbar-nav" class="topbar-nav" aria-label="Navigasi utama">
+            <a href="/">Semua Villa</a>
+            <a href="/cara-pesan">Cara Pesan</a>
+            <a href="/bantuan">Bantuan</a>
+            <a href="/kontak">Kontak</a>
+            <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+          </nav>
+          <span class="topbar-badge">Sewa Villa Puncak, Cipanas &amp; Kota Bunga</span>
+          <button
+            type="button"
+            id="menu-toggle-btn"
+            class="menu-toggle-btn"
+            aria-label="Buka menu navigasi"
+            aria-expanded="false"
+            aria-controls="topbar-nav"
+          >
+            &#9776;
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a href="/">Beranda</a>
+          <span>/</span>
+          <span>{page.category}</span>
+          <span>/</span>
+          <span>{page.keyword}</span>
+        </nav>
+        <h1>{page.keyword}</h1>
+        <p>{page.heroSubtitle}</p>
+      </div>
+    </section>
+
+    <div class="topic-nav-wrap">
+      <nav class="topic-nav" aria-label="Pencarian populer">
+        {
+          relatedPages.slice(0, 8).map((item) => (
+            <a href={`/${item.slug}`} class="topic-pill">
+              {item.keyword} ({item.count})
+            </a>
+          ))
+        }
+      </nav>
+    </div>
+
+    <main class="container">
+      <div class="result-bar">
+        <div>
+          Menampilkan <strong id="range-info">0</strong> dari{" "}
+          <strong id="visible-count">{displayVillas.length}</strong> villa untuk{" "}
+          <strong>{page.keyword}</strong>
+        </div>
+        <div class="sort-wrap">
+          <label for="sort-select">Urutkan:</label>
+          <select id="sort-select">
+            <option value="default">Rekomendasi</option>
+            <option value="price-asc">Harga Terendah</option>
+            <option value="price-desc">Harga Tertinggi</option>
+            <option value="rating-desc">Rating Tertinggi</option>
+          </select>
+        </div>
+      </div>
+
+      <section id="villa-list" class="list">
+        {
+          displayVillas.map((villa, idx) => {
+            const { mainSrc, photos } = resolveVillaGallery(villa);
+            const highlights = getHighlights(villa);
+            const desc = villa.deskripsi_singkat || villa.deskripsi_panjang || "";
+            const detailUrl = `/villa/${getVillaDetailSlug(villa)}`;
+
+            return (
+              <article
+                class="villa-card"
+                data-index={idx}
+                data-price={villa.price_per_night || 0}
+                data-rating={villa.rating || 0}
+              >
+                <div class="villa-media-col">
+                  <div class="main-photo-box">
+                    <img
+                      class="main-photo"
+                      src={mainSrc}
+                      width={280}
+                      height={184}
+                      alt={`${villa.name} - ${page.keyword}`}
+                      loading="eager"
+                      decoding="async"
+                      onerror={`this.onerror=null;this.src='${fallbackImage}';`}
+                    />
+                    {
+                      photos.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            class="photo-arrow-btn prev"
+                            aria-label={`Foto sebelumnya ${villa.name}`}
+                          >
+                            &#8249;
+                          </button>
+                          <button
+                            type="button"
+                            class="photo-arrow-btn next"
+                            aria-label={`Foto berikutnya ${villa.name}`}
+                          >
+                            &#8250;
+                          </button>
+                        </>
+                      )
+                    }
+                    <span class="photo-count-pill">1 / {photos.length}</span>
+                  </div>
+
+                  {photos.length > 0 && (
+                    <div class="gallery-strip" aria-label={`Galeri foto ${villa.name}`}>
+                      {photos.map((photoSrc, tIdx) => (
+                        <button
+                          type="button"
+                          class:list={["thumb-btn", tIdx === 0 && "active"]}
+                          data-src={photoSrc}
+                          data-photo-index={tIdx}
+                          aria-label={`Lihat foto ${tIdx + 1} ${villa.name}`}
+                        >
+                          <img
+                            src={photoSrc}
+                            width={60}
+                            height={40}
+                            alt=""
+                            loading="eager"
+                            decoding="async"
+                            onerror={`this.onerror=null;this.src='${fallbackImage}';`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div class="villa-info">
+                  <div class="villa-top">
+                    <div style="min-width: 0;">
+                      <h2 class="villa-title">
+                        <a href={detailUrl}>{villa.name}</a>
+                      </h2>
+                      <div class="villa-loc">{villa.location}</div>
+                    </div>
+                    <div class="rating-box">
+                      <div class="rating-text">
+                        <span class="rating-label">{getRatingLabel(villa.rating)}</span>
+                        <span class="rating-sub">{villa.jumlah_ulasan} ulasan</span>
+                      </div>
+                      <span class="rating-badge">{villa.rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+
+                  <div class="villa-specs">
+                    {villa.jumlah_kamar} Kamar Tidur • Maksimal {villa.kapasitas_maks} Tamu
+                  </div>
+
+                  {desc && <p class="villa-desc">{desc}</p>}
+
+                  {highlights.length > 0 && (
+                    <div class="villa-tags">
+                      {highlights.map((item) => (
+                        <span class="tag">{item}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div class="villa-price-col">
+                  <div>
+                    <span class="price-note">Harga mulai / malam</span>
+                    <div class="price-val">{formatRupiah(villa.price_per_night)}</div>
+                  </div>
+                  <a href={detailUrl} class="cta-btn">
+                    Lihat Detail
+                  </a>
+                </div>
+              </article>
+            );
+          })
+        }
+      </section>
+
+      <nav id="pagination" class="pagination" aria-label="Paginasi daftar villa"></nav>
+
+      <!-- Artikel SEO -->
+      <article class="content-card">
+        <h2>{page.articleTitle}</h2>
+        {page.articleParagraphs.map((p) => <p>{p}</p>)}
+        <h3 class="modal-section-title" style="margin:0 0 8px;font-size:0.95rem;font-weight:700;">
+          Tips Sebelum Memesan
+        </h3>
+        <ul class="tips-list">
+          {page.tipsList.map((tip) => <li>{tip}</li>)}
+        </ul>
+      </article>
+
+      <!-- FAQ -->
+      <section class="content-card" aria-label="Pertanyaan yang Sering Diajukan (FAQ)">
+        <h2>Pertanyaan Umum (FAQ) — {page.keyword}</h2>
+        <div class="faq-list">
+          {
+            page.faqs.map((item) => (
+              <details class="faq-item">
+                <summary>
+                  <span>{item.q}</span>
+                  <span>+</span>
+                </summary>
+                <div class="faq-answer">{item.a}</div>
+              </details>
+            ))
+          }
+        </div>
+      </section>
+
+      <!-- Internal Link pSEO Terkait -->
+      <section class="content-card" aria-label="Pencarian Villa Terkait">
+        <h2>Pencarian Villa Populer Lainnya</h2>
+        <div class="related-grid">
+          {
+            relatedPages.map((rel) => (
+              <a href={`/${rel.slug}`} class="related-link">
+                {rel.keyword} ({rel.count})
+              </a>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <svg
+              class="footer-logo"
+              viewBox="0 0 64 64"
+              width="28"
+              height="28"
+              aria-hidden="true"
+            >
+              <rect x="2" y="2" width="60" height="60" rx="16" fill="#0194f3" />
+              <path
+                d="M14 33 L32 16 L50 33"
+                fill="none"
+                stroke="#ff5e1f"
+                stroke-width="5.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 31 V44 H43 V31"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M16 51 Q24 47 32 51 T48 51"
+                fill="none"
+                stroke="#e0f2fe"
+                stroke-width="3.8"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>villa<span>.web.id</span></span>
+          </div>
+          <p class="footer-copy">
+            Layanan sewa villa di kawasan Puncak, Cipanas, Cisarua, dan Kota Bunga dengan proses booking jelas dan transparan.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="Tautan informasi">
+          <a href="/cara-pesan">Cara Pesan</a>
+          <a href="/bantuan">Bantuan</a>
+          <a href="/kontak">Kontak</a>
+          <a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>villa.web.id</span>
+        <span>Puncak &bull; Cipanas &bull; Cisarua &bull; Kota Bunga</span>
+      </div>
+    </footer>
+
+    <script is:inline define:vars={{ PAGE_SIZE, fallbackImage }}>
+      function initPseoPage() {
+        const menuToggleBtn = document.getElementById("menu-toggle-btn");
+        const topbarNav = document.getElementById("topbar-nav");
+        const topbarEl = document.getElementById("topbar");
+
+        function setMobileMenuOpen(isOpen) {
+          if (!topbarNav || !menuToggleBtn) return;
+          topbarNav.classList.toggle("is-open", isOpen);
+          menuToggleBtn.setAttribute("aria-expanded", String(isOpen));
+          menuToggleBtn.innerHTML = isOpen ? "&times;" : "&#9776;";
+          menuToggleBtn.setAttribute(
+            "aria-label",
+            isOpen ? "Tutup menu navigasi" : "Buka menu navigasi"
+          );
+        }
+
+        menuToggleBtn?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isOpen = topbarNav?.classList.contains("is-open") || false;
+          setMobileMenuOpen(!isOpen);
+        });
+
+        topbarNav?.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", () => setMobileMenuOpen(false));
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!topbarNav?.classList.contains("is-open")) return;
+          const target = e.target;
+          if (target instanceof Node && !topbarNav.contains(target) && target !== menuToggleBtn) {
+            setMobileMenuOpen(false);
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") setMobileMenuOpen(false);
+        });
+
+        window.addEventListener("resize", () => {
+          if (window.innerWidth > 640) setMobileMenuOpen(false);
+        });
+
+        function handleStickyHeader() {
+          if (!topbarEl) return;
+          topbarEl.classList.toggle("is-stuck", window.scrollY > 4);
+        }
+
+        window.addEventListener("scroll", handleStickyHeader, { passive: true });
+        handleStickyHeader();
+
+        const sortSelect = document.getElementById("sort-select");
+        const listEl = document.getElementById("villa-list");
+        const cards = Array.from(document.querySelectorAll(".villa-card"));
+        const rangeInfoEl = document.getElementById("range-info");
+        const visibleCountEl = document.getElementById("visible-count");
+        const paginationEl = document.getElementById("pagination");
+
+        // --- SLIDER FOTO UTAMA & THUMBNAIL USAP (POINTER EVENTS - DESKTOP & MOBILE) ---
+        cards.forEach((card) => {
+          const mainBox = card.querySelector(".main-photo-box");
+          const mainImg = card.querySelector(".main-photo");
+          const prevBtn = card.querySelector(".photo-arrow-btn.prev");
+          const nextBtn = card.querySelector(".photo-arrow-btn.next");
+          const counterPill = card.querySelector(".photo-count-pill");
+          const stripEl = card.querySelector(".gallery-strip");
+          const thumbs = Array.from(card.querySelectorAll(".thumb-btn"));
+
+          const photoUrls = thumbs
+            .map((btn) => btn.getAttribute("data-src") || "")
+            .filter(Boolean);
+          const list =
+            photoUrls.length > 0
+              ? photoUrls
+              : [mainImg instanceof HTMLImageElement ? mainImg.src : fallbackImage];
+
+          let currentIdx = 0;
+
+          function setCardPhoto(idx, scrollThumbIntoView = false) {
+            const total = list.length;
+            currentIdx = ((idx % total) + total) % total;
+            const src = list[currentIdx] || fallbackImage;
+
+            if (mainImg instanceof HTMLImageElement) {
+              mainImg.style.transform = "";
+              mainImg.style.opacity = "0.72";
+              mainImg.onerror = () => {
+                mainImg.onerror = null;
+                mainImg.src = fallbackImage;
+              };
+              mainImg.src = src;
+              requestAnimationFrame(() => {
+                mainImg.style.opacity = "1";
+              });
+            }
+
+            if (counterPill) {
+              counterPill.textContent = `${currentIdx + 1} / ${total}`;
+            }
+
+            thumbs.forEach((btn, i) => {
+              const isActive = i === currentIdx;
+              btn.classList.toggle("active", isActive);
+              if (isActive && scrollThumbIntoView && stripEl instanceof HTMLElement) {
+                const targetScroll =
+                  btn.offsetLeft - stripEl.offsetLeft - (stripEl.clientWidth - btn.offsetWidth) / 2;
+                stripEl.scrollTo({
+                  left: Math.max(0, targetScroll),
+                  behavior: "smooth",
+                });
+              }
+            });
+          }
+
+          prevBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCardPhoto(currentIdx - 1, true);
+          });
+
+          nextBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCardPhoto(currentIdx + 1, true);
+          });
+
+          let activePointerId = null;
+          let startX = 0;
+          let startY = 0;
+          let isHorizontalSwipe = false;
+
+          mainBox?.addEventListener("pointerdown", (e) => {
+            if (list.length <= 1) return;
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            if (e.target instanceof Element && e.target.closest(".photo-arrow-btn")) return;
+
+            activePointerId = e.pointerId;
+            startX = e.clientX;
+            startY = e.clientY;
+            isHorizontalSwipe = false;
+            mainBox.classList.add("is-dragging");
+
+            try {
+              mainBox.setPointerCapture(e.pointerId);
+            } catch {
+              // Abaikan jika browser tidak mendukung setPointerCapture pada elemen ini
+            }
+          });
+
+          mainBox?.addEventListener("pointermove", (e) => {
+            if (activePointerId === null || e.pointerId !== activePointerId) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            if (!isHorizontalSwipe && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+              isHorizontalSwipe = true;
+            }
+
+            if (isHorizontalSwipe && mainImg instanceof HTMLImageElement) {
+              if (e.cancelable) e.preventDefault();
+              const clamped = Math.max(-48, Math.min(48, dx * 0.35));
+              mainImg.style.transition = "none";
+              mainImg.style.transform = `translateX(${clamped}px)`;
+            }
+          });
+
+          function finishPhotoPointer(e) {
+            if (activePointerId === null || e.pointerId !== activePointerId) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            if (mainImg instanceof HTMLImageElement) {
+              mainImg.style.transition = "transform 0.18s ease, opacity 0.18s ease";
+              mainImg.style.transform = "";
+            }
+
+            if (isHorizontalSwipe && Math.abs(dx) > 22 && Math.abs(dx) >= Math.abs(dy) * 0.85) {
+              if (dx < 0) {
+                setCardPhoto(currentIdx + 1, true);
+              } else {
+                setCardPhoto(currentIdx - 1, true);
+              }
+            }
+
+            activePointerId = null;
+            isHorizontalSwipe = false;
+            mainBox?.classList.remove("is-dragging");
+          }
+
+          mainBox?.addEventListener("pointerup", finishPhotoPointer);
+          mainBox?.addEventListener("pointercancel", finishPhotoPointer);
+
+          thumbs.forEach((btn, i) => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setCardPhoto(i, true);
+            });
+          });
+        });
+
+        // --- PAGINASI & SORTING ---
+        let currentPage = 1;
+
+        function getCompactPages(current, total) {
+          if (total <= 5) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+          }
+          const pages = [1];
+          const start = Math.max(2, current - 1);
+          const end = Math.min(total - 1, current + 1);
+          if (start > 2) pages.push("...");
+          for (let p = start; p <= end; p++) pages.push(p);
+          if (end < total - 1) pages.push("...");
+          pages.push(total);
+          return pages;
+        }
+
+        function renderPagination(totalItems, totalPages) {
+          if (!paginationEl) return;
+          paginationEl.innerHTML = "";
+          if (totalItems === 0 || totalPages <= 1) return;
+
+          const prevBtn = document.createElement("button");
+          prevBtn.type = "button";
+          prevBtn.className = "page-btn";
+          prevBtn.textContent = "‹ Prev";
+          prevBtn.disabled = currentPage <= 1;
+          prevBtn.addEventListener("click", () => {
+            currentPage = Math.max(1, currentPage - 1);
+            updateView(true);
+          });
+          paginationEl.appendChild(prevBtn);
+
+          const compactPages = getCompactPages(currentPage, totalPages);
+          for (const item of compactPages) {
+            if (item === "...") {
+              const span = document.createElement("span");
+              span.className = "page-ellipsis";
+              span.textContent = "…";
+              paginationEl.appendChild(span);
+              continue;
+            }
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "page-btn" + (item === currentPage ? " active" : "");
+            btn.textContent = String(item);
+            btn.addEventListener("click", () => {
+              currentPage = item;
+              updateView(true);
+            });
+            paginationEl.appendChild(btn);
+          }
+
+          const nextBtn = document.createElement("button");
+          nextBtn.type = "button";
+          nextBtn.className = "page-btn";
+          nextBtn.textContent = "Next ›";
+          nextBtn.disabled = currentPage >= totalPages;
+          nextBtn.addEventListener("click", () => {
+            currentPage = Math.min(totalPages, currentPage + 1);
+            updateView(true);
+          });
+          paginationEl.appendChild(nextBtn);
+        }
+
+        function updateView(shouldScroll = false) {
+          if (!listEl) return;
+          const sortBy = sortSelect instanceof HTMLSelectElement ? sortSelect.value : "default";
+          const sorted = [...cards].sort((a, b) => {
+            if (sortBy === "price-asc") return Number(a.dataset.price) - Number(b.dataset.price);
+            if (sortBy === "price-desc") return Number(b.dataset.price) - Number(a.dataset.price);
+            if (sortBy === "rating-desc") return Number(b.dataset.rating) - Number(a.dataset.rating);
+            return Number(a.dataset.index) - Number(b.dataset.index);
+          });
+
+          const totalItems = sorted.length;
+          const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+          if (currentPage > totalPages) currentPage = totalPages;
+
+          const startIdx = (currentPage - 1) * PAGE_SIZE;
+          const endIdx = startIdx + PAGE_SIZE;
+          const pageSlice = new Set(sorted.slice(startIdx, endIdx));
+
+          for (const card of sorted) {
+            listEl.appendChild(card);
+            if (card instanceof HTMLElement) {
+              card.style.display = pageSlice.has(card) ? "" : "none";
+            }
+          }
+
+          if (visibleCountEl) visibleCountEl.textContent = String(totalItems);
+          if (rangeInfoEl) {
+            rangeInfoEl.textContent =
+              totalItems === 0 ? "0" : `${startIdx + 1}–${Math.min(endIdx, totalItems)}`;
+          }
+
+          renderPagination(totalItems, totalPages);
+
+          if (shouldScroll) {
+            const target = document.querySelector(".result-bar");
+            if (target) {
+              const top = target.getBoundingClientRect().top + window.scrollY - 72;
+              window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+            }
+          }
+        }
+
+        sortSelect?.addEventListener("change", () => {
+          currentPage = 1;
+          updateView(false);
+        });
+
+        updateView(false);
+      }
+
+      initPseoPage();
+      document.addEventListener("astro:after-swap", initPseoPage);
+    </script>
+  </body>
+</html>

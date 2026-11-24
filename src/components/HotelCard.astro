@@ -1,0 +1,65 @@
+---
+const { cityId, hotelIds, title } = Astro.props;
+const AGODA_SITE_ID = "1935361";
+const AGODA_API_KEY = "e0cde9f0-8ac7-4881-89a0-f7e6431fb47f";
+
+const fetchHotels = async () => {
+    const criteria = { 
+        checkInDate: "2026-09-01", 
+        checkOutDate: "2026-09-02", 
+        additional: { currency: "USD", language: "en-us", sortBy: "PriceAsc", maxResult: 12 } 
+    };
+    if (cityId) criteria.cityId = parseInt(cityId);
+    else if (hotelIds) criteria.hotelId = Array.isArray(hotelIds) ? hotelIds : [hotelIds];
+    
+    try {
+        const res = await fetch("https://affiliateapi7643.agoda.com/affiliateservice/lt_v1", {
+            method: "POST",
+            headers: { "Authorization": `${AGODA_SITE_ID}:${AGODA_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ criteria })
+        });
+        const data = await res.json();
+        return data.results || [];
+    } catch { return []; }
+};
+const hotels = await fetchHotels();
+---
+<section class="my-16">
+    {title && <h2 class="text-5xl font-black mb-12 text-slate-900 italic uppercase tracking-tighter border-l-[16px] border-blue-600 pl-8">{title}</h2>}
+    
+    {hotels.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+            {hotels.map(h => (
+                <div class="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden hover:scale-[1.02] transition-all duration-500 group">
+                    <div class="h-64 bg-slate-200 relative overflow-hidden">
+                        {h.imageURL ? (
+                            <img src={h.imageURL.replace('800x600', '640x480')} alt={h.hotelName} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        ) : (
+                            <div class="w-full h-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-tighter italic">No Image</div>
+                        )}
+                        <div class="absolute top-6 left-6 bg-white/90 backdrop-blur px-4 py-1 rounded-2xl text-[10px] font-black text-blue-600 shadow-sm border border-slate-100">
+                            ⭐ {h.starRating} STARS
+                        </div>
+                    </div>
+                    <div class="p-10">
+                        <h3 class="font-bold text-2xl text-slate-900 line-clamp-1 mb-2 group-hover:text-blue-600 transition">{h.hotelName}</h3>
+                        <div class="flex items-center gap-2 mb-8 opacity-50 text-sm italic">
+                            <span>Rating: {h.reviewScore || 'N/A'}/10</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-slate-50 p-6 rounded-[2.5rem]">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Mulai Dari</span>
+                                <span class="text-3xl font-black text-blue-600 font-mono italic">${h.dailyRate?.toFixed(2)}</span>
+                            </div>
+                            <a href={h.landingURL} target="_blank" class="bg-blue-600 text-white px-8 py-4 rounded-[1.5rem] font-bold text-xs uppercase tracking-widest hover:bg-slate-900 transition shadow-lg shadow-blue-100">Pesan Sekarang</a>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    ) : (
+        <div class="py-20 text-center bg-white rounded-[4rem] border border-dashed border-slate-300">
+            <p class="text-slate-400 font-bold italic tracking-widest uppercase">Maaf, tidak ada hotel tersedia di wilayah ini saat ini.</p>
+        </div>
+    )}
+</section>
